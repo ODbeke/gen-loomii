@@ -5,15 +5,13 @@ import {
   ArrowRightLeft, ChevronDown, Construction, Fuel, LogOut, ExternalLink, Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { ethers } from 'ethers';
-import { createClient } from 'genlayer-js';
-import { testnetBradbury } from 'genlayer-js/chains';
 
 import type { GameType, GameResult, PendingWager, TxStatus } from '@/lib/loomii-types';
 import {
-  LOOMII_CONTRACT_ADDRESS, LOOMII_ABI, NETWORK_CONFIG,
-  INITIAL_BALANCE, playLoomii
+  LOOMII_CONTRACT_ADDRESS, NETWORK_CONFIG,
+  INITIAL_BALANCE, fetchStats, resolveGame, withdrawFunds, emergencyDrain
 } from '@/lib/loomii-engine';
 import { GameCard } from '@/components/loomii/GameCard';
 import { AccountDropdown } from '@/components/loomii/AccountDropdown';
