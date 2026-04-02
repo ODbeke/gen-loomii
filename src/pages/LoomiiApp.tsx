@@ -5,15 +5,13 @@ import {
   ArrowRightLeft, ChevronDown, Construction, Fuel, LogOut, ExternalLink, Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { ethers } from 'ethers';
-import { createClient } from 'genlayer-js';
-import { testnetBradbury } from 'genlayer-js/chains';
 
 import type { GameType, GameResult, PendingWager, TxStatus } from '@/lib/loomii-types';
 import {
-  LOOMII_CONTRACT_ADDRESS, LOOMII_ABI, NETWORK_CONFIG,
-  INITIAL_BALANCE, playLoomii
+  LOOMII_CONTRACT_ADDRESS, NETWORK_CONFIG,
+  INITIAL_BALANCE, fetchStats, resolveGame, withdrawFunds, emergencyDrain
 } from '@/lib/loomii-engine';
 import { GameCard } from '@/components/loomii/GameCard';
 import { AccountDropdown } from '@/components/loomii/AccountDropdown';
@@ -38,29 +36,8 @@ export default function LoomiiApp() {
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchContractStats = async () => {
-    try {
-      const provider = new ethers.JsonRpcProvider(NETWORK_CONFIG.rpcUrls[0]);
-      const contract = new ethers.Contract(LOOMII_CONTRACT_ADDRESS, LOOMII_ABI, provider);
-      try {
-        const statsResult = await contract.get_stats();
-        const statsStr = typeof statsResult === 'string' && statsResult.startsWith('0x')
-          ? ethers.toUtf8String(statsResult) : statsResult;
-        const stats = JSON.parse(statsStr);
-        setContractStats({
-          totalWagered: ethers.formatEther(stats.total_wagered.toString()),
-          totalPaid: ethers.formatEther(stats.total_paid.toString()),
-          houseReserve: ethers.formatEther(stats.house_reserve.toString()),
-          owner: stats.owner.toLowerCase()
-        });
-      } catch {
-        setContractStats({
-          totalWagered: "0.0", totalPaid: "0.0", houseReserve: "0.0",
-          owner: "0x0000000000000000000000000000000000000000"
-        });
-      }
-    } catch (err) {
-      console.error("Error fetching contract stats:", err);
-    }
+    const stats = await fetchStats();
+    setContractStats(stats);
   };
 
   useEffect(() => {
@@ -175,22 +152,13 @@ export default function LoomiiApp() {
     setPendingWagers(prev => prev.filter(w => w.txHash !== txHash));
   };
 
-  const resolveWager = async (wager: PendingWager) => {
+  const resolveWagerFn = async (wager: PendingWager) => {
     try {
       setTxStatus('processing');
-      const client = createClient({ chain: testnetBradbury, provider: (window as any).ethereum });
       if (!wager.player || typeof wager.player !== 'string' || !wager.player.startsWith('0x')) {
         throw new Error(`Invalid player address in wager: ${wager.player}`);
       }
-      const validPlayerAddr = ethers.getAddress(wager.player);
-      const betAmountBigInt = ethers.parseUnits(wager.betAmount.toString(), 18);
-      const hash = await client.writeContract({
-        address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
-        functionName: 'resolve_game',
-        args: [validPlayerAddr as `0x${string}`, BigInt(wager.gameType), betAmountBigInt, wager.data],
-        value: 0n
-      });
-      await client.waitForTransactionReceipt({ hash });
+      await resolveGame(wager.player, wager.gameType, wager.betAmount, wager.data);
       setTxStatus('confirmed');
       removePendingWager(wager.txHash);
       setHistory(prev => prev.map(item =>
@@ -231,7 +199,7 @@ export default function LoomiiApp() {
   };
 
   const gameProps = {
-    balance, setBalance, account, addHistory, addPendingWager, resolveWager,
+    balance, setBalance, account, addHistory, addPendingWager, resolveWager: resolveWagerFn,
     ai: aiRef.current, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash, setError,
     isOwner: account?.toLowerCase() === contractStats?.owner
   };
@@ -518,7 +486,7 @@ export default function LoomiiApp() {
                           <button
                             onClick={() => {
                               const wager = pendingWagers.find(w => w.txHash === item.txHash);
-                              if (wager) resolveWager(wager);
+                              if (wager) resolveWagerFn(wager);
                             }}
                             className="px-3 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold uppercase rounded hover:scale-105 transition-transform"
                           >
@@ -583,7 +551,7 @@ export default function LoomiiApp() {
                           <ExternalLink className="w-2.5 h-2.5" /> TX
                         </a>
                         <button
-                          onClick={() => resolveWager(wager)}
+                          onClick={() => resolveWagerFn(wager)}
                           className="px-4 py-2 bg-primary text-primary-foreground text-[10px] font-bold uppercase rounded-lg hover:scale-105 transition-transform"
                         >
                           Resolve Now
@@ -601,14 +569,7 @@ export default function LoomiiApp() {
                   if (amount) {
                     try {
                       setTxStatus('processing');
-                      const client = createClient({ chain: testnetBradbury, provider: (window as any).ethereum });
-                      const hash = await client.writeContract({
-                        address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
-                        functionName: 'withdraw',
-                        args: [ethers.parseUnits(amount, 18)],
-                        value: 0n
-                      });
-                      await client.waitForTransactionReceipt({ hash });
+                      await withdrawFunds(amount);
                       setTxStatus('confirmed');
                       alert("Withdrawal successful!");
                       fetchContractStats();
@@ -631,14 +592,7 @@ export default function LoomiiApp() {
                   if (confirm("Are you sure you want to trigger emergency drain?")) {
                     try {
                       setTxStatus('processing');
-                      const client = createClient({ chain: testnetBradbury, provider: (window as any).ethereum });
-                      const hash = await client.writeContract({
-                        address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
-                        functionName: 'emergency_drain',
-                        args: [],
-                        value: 0n
-                      });
-                      await client.waitForTransactionReceipt({ hash });
+                      await emergencyDrain();
                       setTxStatus('confirmed');
                       alert("Emergency drain successful!");
                       fetchContractStats();
