@@ -26,7 +26,6 @@ export function MinesGame({ balance, setBalance, account, addHistory, addPending
   const startGame = async () => {
     if (!account || !account.startsWith('0x')) {
       setError("Connect your wallet first");
-      setTimeout(() => setError(null), 3000);
       return;
     }
 
@@ -78,10 +77,8 @@ export function MinesGame({ balance, setBalance, account, addHistory, addPending
     } catch (e: any) {
       if (e.code === 'ACTION_REJECTED' || e.message?.includes('user rejected action')) {
         setError("Transaction cancelled by user.");
-        setTimeout(() => setError(null), 3000);
       } else {
         setError("An unexpected error occurred while starting the game.");
-        setTimeout(() => setError(null), 5000);
       }
       setTxStatus('idle');
     } finally {
