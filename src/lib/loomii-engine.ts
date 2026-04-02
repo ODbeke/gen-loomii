@@ -21,12 +21,20 @@ export const NETWORK_CONFIG = {
  * Lazily creates a GenLayer client. Called only when a write is needed,
  * avoiding the viem getAddress() crash at module load time.
  */
-function getGenLayerClient() {
+async function getGenLayerClient() {
   const ethereum = (window as any).ethereum;
   if (!ethereum) throw new Error("No wallet provider found. Please install MetaMask.");
+  
+  // Get the connected account from the provider to satisfy genlayer-js
+  const accounts: string[] = await ethereum.request({ method: 'eth_accounts' });
+  if (!accounts || accounts.length === 0) {
+    throw new Error("No account connected. Please connect your wallet first.");
+  }
+  const account = accounts[0] as `0x${string}`;
+
   return createClient({
     chain: testnetBradbury,
-    account: undefined as any,   // account comes from the provider/signer
+    account,
   });
 }
 
