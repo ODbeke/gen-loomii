@@ -106,7 +106,7 @@ export default function LoomiiApp() {
 
   const connectWallet = async () => {
     if (!(window as any).ethereum) {
-      setError("Please install MetaMask or another browser wallet.");
+      toast.error("Please install MetaMask or another browser wallet.");
       return;
     }
     setIsConnecting(true);
@@ -135,7 +135,7 @@ export default function LoomiiApp() {
       }
       setAccount(sanitizedAddress);
     } catch (err: any) {
-      setError(err.message || "Failed to connect wallet");
+      toast.error(err.message || "Failed to connect wallet");
     } finally {
       setIsConnecting(false);
     }
@@ -176,7 +176,7 @@ export default function LoomiiApp() {
         setTxStatus('confirmed');
         return true;
       }
-      setError("On-chain resolution failed. Check explorer.");
+      toast.error("On-chain resolution failed. Check explorer.");
       setTxStatus('idle');
       return false;
     }
