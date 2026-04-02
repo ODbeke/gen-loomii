@@ -33,7 +33,7 @@ async function getGenLayerClient() {
   const account = accounts[0] as `0x${string}`;
 
   return createClient({
-    chain: testnetBradbury,
+    chain: studionet,
     account,
   });
 }
