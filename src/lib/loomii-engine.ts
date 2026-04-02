@@ -57,7 +57,7 @@ export const playLoomii = async (gameType: number, move: string, userAddress: st
   }
 
   try {
-    const client = getGenLayerClient();
+    const client = await getGenLayerClient();
 
     const hash = await client.writeContract({
       address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
@@ -80,7 +80,7 @@ export const playLoomii = async (gameType: number, move: string, userAddress: st
  * Resolve a pending wager via genlayer-js writeContract so GenVM indexes it.
  */
 export const resolveGame = async (playerAddress: string, gameType: number, betAmount: number, playerData: string) => {
-  const client = getGenLayerClient();
+  const client = await getGenLayerClient();
   const validAddr = ethers.getAddress(playerAddress);
   const betAmountBigInt = ethers.parseUnits(betAmount.toString(), 18);
 
@@ -99,7 +99,7 @@ export const resolveGame = async (playerAddress: string, gameType: number, betAm
  * Owner withdrawal via genlayer-js writeContract.
  */
 export const withdrawFunds = async (amount: string) => {
-  const client = getGenLayerClient();
+  const client = await getGenLayerClient();
   const hash = await client.writeContract({
     address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
     functionName: 'withdraw',
@@ -113,7 +113,7 @@ export const withdrawFunds = async (amount: string) => {
  * Emergency drain via genlayer-js writeContract.
  */
 export const emergencyDrain = async () => {
-  const client = getGenLayerClient();
+  const client = await getGenLayerClient();
   const hash = await client.writeContract({
     address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
     functionName: 'emergency_drain',
