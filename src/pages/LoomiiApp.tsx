@@ -39,18 +39,6 @@ export default function LoomiiApp() {
     const stats = await fetchStats();
     setContractStats(stats);
   };
-          owner: stats.owner.toLowerCase()
-        });
-      } catch {
-        setContractStats({
-          totalWagered: "0.0", totalPaid: "0.0", houseReserve: "0.0",
-          owner: "0x0000000000000000000000000000000000000000"
-        });
-      }
-    } catch (err) {
-      console.error("Error fetching contract stats:", err);
-    }
-  };
 
   useEffect(() => {
     fetchContractStats();
