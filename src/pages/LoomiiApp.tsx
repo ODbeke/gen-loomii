@@ -29,7 +29,7 @@ export default function LoomiiApp() {
   const [activeGame, setActiveGame] = useState<GameType | null>(null);
   const [history, setHistory] = useState<GameResult[]>([]);
   const [pendingWagers, setPendingWagers] = useState<PendingWager[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  
   const [txStatus, setTxStatus] = useState<TxStatus>('idle');
   const [currentTxHash, setCurrentTxHash] = useState<string | null>(null);
   const [payoutTxHash, setPayoutTxHash] = useState<string | null>(null);
