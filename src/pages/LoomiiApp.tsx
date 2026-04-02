@@ -164,22 +164,13 @@ export default function LoomiiApp() {
     setPendingWagers(prev => prev.filter(w => w.txHash !== txHash));
   };
 
-  const resolveWager = async (wager: PendingWager) => {
+  const resolveWagerFn = async (wager: PendingWager) => {
     try {
       setTxStatus('processing');
-      const client = createClient({ chain: testnetBradbury, provider: (window as any).ethereum });
       if (!wager.player || typeof wager.player !== 'string' || !wager.player.startsWith('0x')) {
         throw new Error(`Invalid player address in wager: ${wager.player}`);
       }
-      const validPlayerAddr = ethers.getAddress(wager.player);
-      const betAmountBigInt = ethers.parseUnits(wager.betAmount.toString(), 18);
-      const hash = await client.writeContract({
-        address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
-        functionName: 'resolve_game',
-        args: [validPlayerAddr as `0x${string}`, BigInt(wager.gameType), betAmountBigInt, wager.data],
-        value: 0n
-      });
-      await client.waitForTransactionReceipt({ hash });
+      await resolveGame(wager.player, wager.gameType, wager.betAmount, wager.data);
       setTxStatus('confirmed');
       removePendingWager(wager.txHash);
       setHistory(prev => prev.map(item =>
