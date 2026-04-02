@@ -377,14 +377,14 @@ export default function LoomiiApp() {
                 {currentTxHash && <div className="w-px h-4 bg-border" />}
                 <div className="flex flex-col gap-2">
                   {currentTxHash && (
-                    <a href={`${NETWORK_CONFIG.blockExplorerUrls[0]}tx/${currentTxHash}`} target="_blank" rel="noopener noreferrer"
+                    <a href={`${NETWORK_CONFIG.blockExplorerUrls[0]}transactions/${currentTxHash}`} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1.5 text-[10px] text-primary hover:underline font-mono">
                       <ExternalLink className="w-3 h-3" />
                       Wager: {currentTxHash.slice(0, 6)}...{currentTxHash.slice(-4)}
                     </a>
                   )}
                   {payoutTxHash && (
-                    <a href={`${NETWORK_CONFIG.blockExplorerUrls[0]}tx/${payoutTxHash}`} target="_blank" rel="noopener noreferrer"
+                    <a href={`${NETWORK_CONFIG.blockExplorerUrls[0]}transactions/${payoutTxHash}`} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1.5 text-[10px] text-green-500 hover:underline font-mono">
                       <ExternalLink className="w-3 h-3" />
                       Payout: {payoutTxHash.slice(0, 6)}...{payoutTxHash.slice(-4)}
@@ -460,7 +460,7 @@ export default function LoomiiApp() {
                       <div className="flex items-center justify-end gap-2">
                         <div className="text-[10px] text-muted-foreground/60 max-w-[150px] truncate italic">{item.vibe || item.message}</div>
                         {item.txHash && (
-                          <a href={`${NETWORK_CONFIG.blockExplorerUrls[0]}tx/${item.txHash}`} target="_blank" rel="noopener noreferrer"
+                          <a href={`${NETWORK_CONFIG.blockExplorerUrls[0]}transactions/${item.txHash}`} target="_blank" rel="noopener noreferrer"
                             className="text-[10px] text-primary hover:underline flex items-center gap-1">
                             <ExternalLink className="w-2.5 h-2.5" /> TX
                           </a>
@@ -533,7 +533,7 @@ export default function LoomiiApp() {
                         <div className="text-[10px] font-mono text-primary">{wager.betAmount} GEN</div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <a href={`${NETWORK_CONFIG.blockExplorerUrls[0]}tx/${wager.txHash}`} target="_blank" rel="noopener noreferrer"
+                        <a href={`${NETWORK_CONFIG.blockExplorerUrls[0]}transactions/${wager.txHash}`} target="_blank" rel="noopener noreferrer"
                           className="text-[10px] text-primary hover:underline flex items-center gap-1">
                           <ExternalLink className="w-2.5 h-2.5" /> TX
                         </a>
