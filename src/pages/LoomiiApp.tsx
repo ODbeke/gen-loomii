@@ -338,15 +338,14 @@ export default function LoomiiApp() {
                 initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                 className="bg-card border border-border rounded-3xl p-8 max-w-md w-full text-center shadow-2xl"
               >
-                <div className="mb-8 relative">
+                <div className="mb-8">
                   <div className="w-24 h-24 rounded-full border-4 border-border mx-auto flex items-center justify-center">
                     <Wallet className="w-10 h-10 text-primary animate-pulse" />
                   </div>
-                  <div className="absolute inset-0 border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin" />
                 </div>
-                <h2 className="text-2xl font-bold uppercase italic tracking-tight mb-2">Staking GEN...</h2>
+                <h2 className="text-2xl font-bold uppercase italic tracking-tight mb-2">Finalizing Transaction...</h2>
                 <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
-                  Confirm the transaction in your wallet to place your wager on the GenLayer Bradbury Testnet.
+                  Confirm the transaction in your wallet to place your wager on the GenLayer StudioNet.
                 </p>
                 <div className="flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground/50">
                   <ShieldCheck className="w-3 h-3" />
