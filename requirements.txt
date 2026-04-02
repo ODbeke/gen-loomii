@@ -1,0 +1,9 @@
+# GenLayer SDK for interacting with Intelligent Contracts
+genlayer
+
+# For managing environment variables (.env)
+python-dotenv
+
+# Common utilities for Web3/AI projects
+requests
+aiohttp
