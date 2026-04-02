@@ -581,14 +581,7 @@ export default function LoomiiApp() {
                   if (amount) {
                     try {
                       setTxStatus('processing');
-                      const client = createClient({ chain: testnetBradbury, provider: (window as any).ethereum });
-                      const hash = await client.writeContract({
-                        address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
-                        functionName: 'withdraw',
-                        args: [ethers.parseUnits(amount, 18)],
-                        value: 0n
-                      });
-                      await client.waitForTransactionReceipt({ hash });
+                      await withdrawFunds(amount);
                       setTxStatus('confirmed');
                       alert("Withdrawal successful!");
                       fetchContractStats();
@@ -611,14 +604,7 @@ export default function LoomiiApp() {
                   if (confirm("Are you sure you want to trigger emergency drain?")) {
                     try {
                       setTxStatus('processing');
-                      const client = createClient({ chain: testnetBradbury, provider: (window as any).ethereum });
-                      const hash = await client.writeContract({
-                        address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
-                        functionName: 'emergency_drain',
-                        args: [],
-                        value: 0n
-                      });
-                      await client.waitForTransactionReceipt({ hash });
+                      await emergencyDrain();
                       setTxStatus('confirmed');
                       alert("Emergency drain successful!");
                       fetchContractStats();
