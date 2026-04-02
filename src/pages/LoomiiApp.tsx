@@ -199,7 +199,7 @@ export default function LoomiiApp() {
   };
 
   const gameProps = {
-    balance, setBalance, account, addHistory, addPendingWager, resolveWagerFn,
+    balance, setBalance, account, addHistory, addPendingWager, resolveWager: resolveWagerFn,
     ai: aiRef.current, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash, setError,
     isOwner: account?.toLowerCase() === contractStats?.owner
   };
