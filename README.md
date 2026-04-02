@@ -1,9 +1,24 @@
-**Loomii** is a decentralized, AI-powered gaming platform built on **GenLayer StudioNet**. 
+<div align="center">
+  <h1>Loomii</h1>
+  <p><b>AI-Governed Decentralized Gaming</b></p>
+  <img src="https://img.shields.io/badge/Powered%20by-GenLayer-blueviolet" />
+</div>
+
+---
+
+
+
+
+
+
+**[Loomii](https://gen-loomii.lovable.app/)** is a decentralized, AI-powered gaming platform built on **GenLayer StudioNet**. 
 
 It leverages GenLayer's **Intelligent Contracts** to bring a new level of fairness and unpredictability to Web3 gaming.
 
 
 Loomii transforms traditional casino-style games into Intelligent Games. Instead of simple random number generators (RNG), Loomii uses GenLayer's **Equivalence Principle (AI Consensus)** to resolve game outcomes. This allows for complex, context-aware resolutions and unique vibes for every win or loss.
+
+______
 
 ## 🎮 Featured Games
 
@@ -15,7 +30,7 @@ Loomii transforms traditional casino-style games into Intelligent Games. Instead
   <img width="2768" height="572" alt="image" src="https://github.com/user-attachments/assets/58f2b6a8-2137-43f7-bb36-44600d5b554b" />
 
 
-
+______
 
 ## Key Features
 
@@ -27,6 +42,8 @@ Loomii transforms traditional casino-style games into Intelligent Games. Instead
 - **Brutalist UI:** A high-performance, dark-themed interface designed for precision and speed.
 
 
+_____
+
 ## 🛠️ Tech Stack
 
 - **Frontend:** React 19, Vite, Tailwind CSS 4, Framer Motion, Lucide React.
@@ -36,6 +53,8 @@ Loomii transforms traditional casino-style games into Intelligent Games. Instead
 - **Smart Contract:** Python (GenLayer Intelligent Contract framework).
 
 
+_____
+
 ## 📜 Smart Contract (`loomii_contract.py`)
 
 The core logic resides in a GenLayer Intelligent Contract:
@@ -43,6 +62,8 @@ The core logic resides in a GenLayer Intelligent Contract:
 - `resolve_game(player_address, game_type, bet_amount, player_data)`: The AI-driven resolution engine that uses the Equivalence Principle to determine winners.
 - `get_stats()`: Returns real-time contract metrics.
 
+
+_____
 
 ## ⚠️ Deployment & Testing Note: StudioNet vs. Bradbury
 
@@ -61,13 +82,35 @@ Economic Integrity: A gambling/gaming contract requires a stake to calculate a p
 Future Proofing: Ensuring the code remains compatible with the Bradbury economic model once value-based transactions are re-enabled.
 
 
+_____
+
 ## Prerequisites
 - Node.js (v18+)
 - MetaMask
+- GenLayer Account (StudioNet)
 
+_____
+
+### GenLayer StudioNet Configuration
+| | |
+| :--- | :--- |
+| **Network Name** | GenLayer StudioNet |
+| **RPC URL** | `https://studio.genlayer.com/api` |
+| **Chain ID** | `61999` |
+| **Currency Symbol** | `GEN` |
+
+
+
+
+
+
+___
 
 ## 🚧 Project Status
 
 - **Main Games:** Fully Functional on StudioNet.
 - **Bridge:** Currently **Under Construction 🛠️** (Upgrading for enhanced cross-chain support).
+_____
+_____
 
+*Built for the **GenLayer Testnet Bradbury Hackaton**.*
