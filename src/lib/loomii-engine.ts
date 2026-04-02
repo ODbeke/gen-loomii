@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { createClient } from 'genlayer-js';
-import { testnetBradbury } from 'genlayer-js/chains';
+import { studionet } from 'genlayer-js/chains';
 
 export const LOOMII_CONTRACT_ADDRESS = "0x929D3a62b12F1483f9E75005EE6e9AB0016e7Feb";
 export const INITIAL_BALANCE = 1000000;
@@ -33,7 +33,7 @@ async function getGenLayerClient() {
   const account = accounts[0] as `0x${string}`;
 
   return createClient({
-    chain: testnetBradbury,
+    chain: studionet,
     account,
   });
 }
