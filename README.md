@@ -88,6 +88,49 @@ _____
 - Node.js (v18+)
 - MetaMask
 - GenLayer Account (StudioNet)
+- **Python 3.10+** and `pip` installed on your system.
+
+### 1. Installation
+Clone the repository and navigate into the project directory:
+```bash
+git clone https://github.com/ODbeke/gen-loomii.git
+cd gen-loomii
+```
+
+### 2. Virtual Environment Setup
+```bash
+# Create the environment
+python -m venv venv
+
+# Activate it (Windows)
+venv\Scripts\activate
+
+# Activate it (Mac/Linux)
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Environment Configuration
+Create a .env file in the root directory:
+```bash
+touch .env
+```
+Open the .env file and paste the following configuration:
+```bash
+RPC_URL="https://studio.genlayer.com/api"
+CHAIN_ID=61999
+CONTRACT_ADDRESS="0x929D3a62b12F1483f9E75005EE6e9AB0016e7Feb"
+PRIVATE_KEY="your_actual_private_key_here"
+```
+
+Once your .env is configured with your private key, you can start the application:
+```bash
+python main.py
+```
 
 _____
 
