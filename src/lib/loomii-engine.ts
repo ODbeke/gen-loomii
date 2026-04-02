@@ -14,7 +14,7 @@ export const NETWORK_CONFIG = {
   chainName: 'GenLayer StudioNet',
   nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 },
   rpcUrls: ['https://studio.genlayer.com/api'],
-  blockExplorerUrls: ['https://studio.genlayer.com/'],
+  blockExplorerUrls: ['https://explorer-studio.genlayer.com/'],
 };
 
 /**
