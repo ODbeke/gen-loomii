@@ -34,8 +34,8 @@ ______
 
 ## Key Features
 
-- **Intelligent Contracts:** Powered by Python-based GenLayer contracts (`loomii_contract.py`).
-- **AI Oracle Resolution:** Outcomes are determined by AI consensus, ensuring fairness and adding a layer of "personality" to the game engine.
+- **Intelligent Contracts:** Powered by Python-based GenLayer contracts.
+- **AI Oracle Resolution:** Outcomes are determined by AI consensus, ensuring fairness and adding a layer of personality to the game engine.
 - **Gasless Experience:** Optimized for the gasless testing environment of **GenLayer StudioNet**.
 - **Real-time Statistics:** Track House Reserve, Total Wagered, and Total Paid directly from the smart contract.
 - **Deterministic Payouts:** Secure, on-chain payouts executed automatically by the contract logic.
@@ -55,7 +55,7 @@ _____
 
 _____
 
-## 📜 Smart Contract (`loomii_contract.py`)
+## 📜 Smart Contract 
 
 The core logic resides in a GenLayer Intelligent Contract:
 - `wager(game_type, data)`: Accepts wagers in **GEN** tokens.
