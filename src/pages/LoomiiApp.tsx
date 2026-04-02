@@ -7,6 +7,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from "@google/genai";
 import { ethers } from 'ethers';
+import { toast } from 'sonner';
 
 import type { GameType, GameResult, PendingWager, TxStatus } from '@/lib/loomii-types';
 import {
@@ -28,7 +29,7 @@ export default function LoomiiApp() {
   const [activeGame, setActiveGame] = useState<GameType | null>(null);
   const [history, setHistory] = useState<GameResult[]>([]);
   const [pendingWagers, setPendingWagers] = useState<PendingWager[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  
   const [txStatus, setTxStatus] = useState<TxStatus>('idle');
   const [currentTxHash, setCurrentTxHash] = useState<string | null>(null);
   const [payoutTxHash, setPayoutTxHash] = useState<string | null>(null);
@@ -105,7 +106,7 @@ export default function LoomiiApp() {
 
   const connectWallet = async () => {
     if (!(window as any).ethereum) {
-      setError("Please install MetaMask or another browser wallet.");
+      toast.error("Please install MetaMask or another browser wallet.");
       return;
     }
     setIsConnecting(true);
@@ -134,7 +135,7 @@ export default function LoomiiApp() {
       }
       setAccount(sanitizedAddress);
     } catch (err: any) {
-      setError(err.message || "Failed to connect wallet");
+      toast.error(err.message || "Failed to connect wallet");
     } finally {
       setIsConnecting(false);
     }
@@ -175,7 +176,7 @@ export default function LoomiiApp() {
         setTxStatus('confirmed');
         return true;
       }
-      setError("On-chain resolution failed. Check explorer.");
+      toast.error("On-chain resolution failed. Check explorer.");
       setTxStatus('idle');
       return false;
     }
@@ -200,7 +201,7 @@ export default function LoomiiApp() {
 
   const gameProps = {
     balance, setBalance, account, addHistory, addPendingWager, resolveWager: resolveWagerFn,
-    ai: aiRef.current, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash, setError,
+    ai: aiRef.current, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash, setError: (msg: string | null) => { if (msg) toast.error(msg, { duration: 5000 }); },
     isOwner: account?.toLowerCase() === contractStats?.owner
   };
 
@@ -250,19 +251,6 @@ export default function LoomiiApp() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-12">
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="mb-8 p-4 bg-destructive/10 border border-destructive/50 rounded-xl flex items-center gap-3 text-destructive text-sm"
-            >
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              {error}
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <AnimatePresence mode="wait">
           {!activeGame ? (
