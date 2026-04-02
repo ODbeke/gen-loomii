@@ -251,19 +251,6 @@ export default function LoomiiApp() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-12">
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="mb-8 p-4 bg-destructive/10 border border-destructive/50 rounded-xl flex items-center gap-3 text-destructive text-sm"
-            >
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              {error}
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <AnimatePresence mode="wait">
           {!activeGame ? (
