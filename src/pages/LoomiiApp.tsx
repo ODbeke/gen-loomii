@@ -7,6 +7,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from "@google/genai";
 import { ethers } from 'ethers';
+import { toast } from 'sonner';
 
 import type { GameType, GameResult, PendingWager, TxStatus } from '@/lib/loomii-types';
 import {
