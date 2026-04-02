@@ -201,7 +201,7 @@ export default function LoomiiApp() {
 
   const gameProps = {
     balance, setBalance, account, addHistory, addPendingWager, resolveWager: resolveWagerFn,
-    ai: aiRef.current, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash, setError,
+    ai: aiRef.current, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash, setError: (msg: string | null) => { if (msg) toast.error(msg, { duration: 5000 }); },
     isOwner: account?.toLowerCase() === contractStats?.owner
   };
 
