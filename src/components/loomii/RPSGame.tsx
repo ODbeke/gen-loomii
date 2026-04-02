@@ -22,7 +22,6 @@ export function RPSGame({ balance, setBalance, account, addHistory, addPendingWa
   const play = async (userMove: string) => {
     if (!account || !account.startsWith('0x')) {
       setError("Connect your wallet first");
-      setTimeout(() => setError(null), 3000);
       return;
     }
 
@@ -101,10 +100,8 @@ export function RPSGame({ balance, setBalance, account, addHistory, addPendingWa
     } catch (e: any) {
       if (e.code === 'ACTION_REJECTED' || e.message?.includes('user rejected action')) {
         setError("Transaction cancelled by user.");
-        setTimeout(() => setError(null), 3000);
       } else {
         setError("An unexpected error occurred during the duel.");
-        setTimeout(() => setError(null), 5000);
       }
       setTxStatus('idle');
     } finally {
