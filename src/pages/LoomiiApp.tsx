@@ -36,18 +36,9 @@ export default function LoomiiApp() {
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchContractStats = async () => {
-    try {
-      const provider = new ethers.JsonRpcProvider(NETWORK_CONFIG.rpcUrls[0]);
-      const contract = new ethers.Contract(LOOMII_CONTRACT_ADDRESS, LOOMII_ABI, provider);
-      try {
-        const statsResult = await contract.get_stats();
-        const statsStr = typeof statsResult === 'string' && statsResult.startsWith('0x')
-          ? ethers.toUtf8String(statsResult) : statsResult;
-        const stats = JSON.parse(statsStr);
-        setContractStats({
-          totalWagered: ethers.formatEther(stats.total_wagered.toString()),
-          totalPaid: ethers.formatEther(stats.total_paid.toString()),
-          houseReserve: ethers.formatEther(stats.house_reserve.toString()),
+    const stats = await fetchStats();
+    setContractStats(stats);
+  };
           owner: stats.owner.toLowerCase()
         });
       } catch {
