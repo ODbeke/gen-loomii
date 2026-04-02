@@ -199,7 +199,7 @@ export default function LoomiiApp() {
   };
 
   const gameProps = {
-    balance, setBalance, account, addHistory, addPendingWager, resolveWager,
+    balance, setBalance, account, addHistory, addPendingWager, resolveWagerFn,
     ai: aiRef.current, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash, setError,
     isOwner: account?.toLowerCase() === contractStats?.owner
   };
@@ -486,7 +486,7 @@ export default function LoomiiApp() {
                           <button
                             onClick={() => {
                               const wager = pendingWagers.find(w => w.txHash === item.txHash);
-                              if (wager) resolveWager(wager);
+                              if (wager) resolveWagerFn(wager);
                             }}
                             className="px-3 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold uppercase rounded hover:scale-105 transition-transform"
                           >
@@ -551,7 +551,7 @@ export default function LoomiiApp() {
                           <ExternalLink className="w-2.5 h-2.5" /> TX
                         </a>
                         <button
-                          onClick={() => resolveWager(wager)}
+                          onClick={() => resolveWagerFn(wager)}
                           className="px-4 py-2 bg-primary text-primary-foreground text-[10px] font-bold uppercase rounded-lg hover:scale-105 transition-transform"
                         >
                           Resolve Now
