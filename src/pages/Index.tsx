@@ -1,4 +1,4 @@
-import LoomiiApp from "./pages/LoomiiApp";
+import LoomiiApp from "@/pages/LoomiiApp";
 
 const Index = () => {
   return <LoomiiApp />;
