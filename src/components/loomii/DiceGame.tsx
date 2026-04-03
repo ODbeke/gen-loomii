@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dice5, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Dice5, RefreshCw, ShieldCheck, Plus, Minus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { GameProps, PendingWager } from '@/lib/loomii-types';
 import { playLoomii } from '@/lib/loomii-engine';
@@ -95,12 +95,33 @@ export function DiceGame({ balance, setBalance, account, addHistory, addPendingW
         <div className="space-y-8">
           <div>
             <label className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-4 block">Bet Amount</label>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setBet(Math.max(1, bet - 1))}
+                className="w-10 h-10 rounded-lg border border-border hover:border-muted-foreground/30 flex items-center justify-center transition-all"
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+              <input
+                type="number"
+                min={1}
+                value={bet}
+                onChange={(e) => setBet(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-24 text-center bg-background border border-border rounded-lg py-2 font-mono text-lg focus:outline-none focus:border-primary transition-colors"
+              />
+              <button
+                onClick={() => setBet(bet + 1)}
+                className="w-10 h-10 rounded-lg border border-border hover:border-muted-foreground/30 flex items-center justify-center transition-all"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex gap-2 mt-3">
               {[10, 50, 100, 500].map(amt => (
                 <button
                   key={amt}
                   onClick={() => setBet(amt)}
-                  className={`px-4 py-2 rounded border transition-all font-mono ${bet === amt ? 'bg-primary border-primary text-primary-foreground' : 'border-border hover:border-muted-foreground/30'}`}
+                  className={`px-3 py-1.5 rounded border transition-all font-mono text-xs ${bet === amt ? 'bg-primary border-primary text-primary-foreground' : 'border-border hover:border-muted-foreground/30'}`}
                 >
                   {amt}
                 </button>
