@@ -443,7 +443,6 @@ export default function LoomiiApp() {
                     <div>
                       <div className="text-sm font-bold uppercase tracking-tight">
                         {item.type === 'faucet' ? 'Faucet' : `${item.type} Game`}
-                        {item.isPending && <span className="ml-2 text-[8px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">Pending</span>}
                       </div>
                       <div className="text-xs text-muted-foreground">{new Date(item.timestamp).toLocaleTimeString()}</div>
                     </div>
@@ -467,29 +466,6 @@ export default function LoomiiApp() {
                         )}
                       </div>
                     </div>
-                    {item.isPending && account && (
-                      <div className="flex gap-2">
-                        {contractStats && account.toLowerCase() === contractStats.owner ? (
-                          <button
-                            onClick={() => {
-                              const wager = pendingWagers.find(w => w.txHash === item.txHash);
-                              if (wager) resolveWagerFn(wager);
-                            }}
-                            className="px-3 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold uppercase rounded hover:scale-105 transition-transform"
-                          >
-                            Resolve
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => syncWager(item.txHash!)}
-                            className="px-3 py-1.5 bg-secondary border border-primary/30 text-primary text-[10px] font-bold uppercase rounded hover:bg-primary/10 transition-all"
-                            title="Sync with chain if already finalized"
-                          >
-                            Sync
-                          </button>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </motion.div>
               ))
