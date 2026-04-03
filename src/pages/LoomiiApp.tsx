@@ -466,29 +466,6 @@ export default function LoomiiApp() {
                         )}
                       </div>
                     </div>
-                    {item.isPending && account && (
-                      <div className="flex gap-2">
-                        {contractStats && account.toLowerCase() === contractStats.owner ? (
-                          <button
-                            onClick={() => {
-                              const wager = pendingWagers.find(w => w.txHash === item.txHash);
-                              if (wager) resolveWagerFn(wager);
-                            }}
-                            className="px-3 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold uppercase rounded hover:scale-105 transition-transform"
-                          >
-                            Resolve
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => syncWager(item.txHash!)}
-                            className="px-3 py-1.5 bg-secondary border border-primary/30 text-primary text-[10px] font-bold uppercase rounded hover:bg-primary/10 transition-all"
-                            title="Sync with chain if already finalized"
-                          >
-                            Sync
-                          </button>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </motion.div>
               ))
