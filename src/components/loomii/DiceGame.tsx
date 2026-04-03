@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dice5, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Dice5, RefreshCw, ShieldCheck, Plus, Minus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { GameProps, PendingWager } from '@/lib/loomii-types';
 import { playLoomii } from '@/lib/loomii-engine';
