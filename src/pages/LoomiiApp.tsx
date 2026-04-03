@@ -211,8 +211,8 @@ export default function LoomiiApp() {
       <header className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveGame(null)}>
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center loomii-glow">
-              <Sparkles className="text-primary-foreground w-6 h-6" />
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center loomii-glow p-1.5">
+              <img src="/logo.png" alt="Loomii logo" className="w-full h-full invert" />
             </div>
             <h1 className="text-2xl font-bold tracking-tighter uppercase italic">Loomii</h1>
           </div>
