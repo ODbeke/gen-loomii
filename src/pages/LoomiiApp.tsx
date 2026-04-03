@@ -443,7 +443,6 @@ export default function LoomiiApp() {
                     <div>
                       <div className="text-sm font-bold uppercase tracking-tight">
                         {item.type === 'faucet' ? 'Faucet' : `${item.type} Game`}
-                        {item.isPending && <span className="ml-2 text-[8px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">Pending</span>}
                       </div>
                       <div className="text-xs text-muted-foreground">{new Date(item.timestamp).toLocaleTimeString()}</div>
                     </div>
