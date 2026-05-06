@@ -9,10 +9,10 @@ import { GoogleGenAI } from "@google/genai";
 import { ethers } from 'ethers';
 import { toast } from 'sonner';
 
-import type { GameType, GameResult, PendingWager, TxStatus } from '@/lib/loomii-types';
+import type { GameType, GameResult, TxStatus } from '@/lib/loomii-types';
 import {
   LOOMII_CONTRACT_ADDRESS, NETWORK_CONFIG,
-  INITIAL_BALANCE, fetchStats, resolveGame, withdrawFunds, emergencyDrain
+  INITIAL_BALANCE, fetchStats, fundHouse
 } from '@/lib/loomii-engine';
 import { GameCard } from '@/components/loomii/GameCard';
 import { AccountDropdown } from '@/components/loomii/AccountDropdown';
