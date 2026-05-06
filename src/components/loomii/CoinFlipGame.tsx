@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import type { GameProps, PendingWager } from '@/lib/loomii-types';
+import { Plus, Minus } from 'lucide-react';
+import type { GameProps } from '@/lib/loomii-types';
 import { playLoomii } from '@/lib/loomii-engine';
 
-export function CoinFlipGame({ balance, setBalance, account, addHistory, addPendingWager, resolveWager, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash, setError, isOwner }: GameProps) {
+export function CoinFlipGame({ account, addHistory, setTxStatus, setCurrentTxHash, setError, refreshStats }: GameProps) {
   const [bet, setBet] = useState(10);
   const [isFlipping, setIsFlipping] = useState(false);
   const [side, setSide] = useState<'heads' | 'tails' | null>(null);
@@ -21,8 +22,7 @@ export function CoinFlipGame({ balance, setBalance, account, addHistory, addPend
     try {
       const gameData = { choice, bet };
       const gameDataStr = JSON.stringify(gameData);
-      const choiceStr = choice.charAt(0).toUpperCase() + choice.slice(1);
-      const txResult = await playLoomii(2, choiceStr, account);
+      const txResult = await playLoomii(2, gameDataStr, account, bet);
 
       if (!txResult.success) {
         setError(txResult.error || "Transaction failed");
@@ -31,30 +31,18 @@ export function CoinFlipGame({ balance, setBalance, account, addHistory, addPend
         return;
       }
 
-      const txHash = txResult.hash;
+      const txHash = txResult.hash!;
       setCurrentTxHash(txHash);
       setTxStatus('confirmed');
-
-      const result = Math.random() > 0.5 ? 'heads' : 'tails';
-      setSide(result);
-      const win = choice === result;
-
-      const wager: PendingWager = {
-        player: account, gameType: 2, betAmount: bet, data: gameDataStr,
-        timestamp: Date.now(), txHash: txHash!, gameName: 'Coin Flip',
-        simulatedOutcome: win ? 'win' : 'loss'
-      };
-      addPendingWager(wager);
+      setSide(choice);
 
       addHistory({
-        type: 'coin', outcome: win ? 'win' : 'loss', amount: bet,
-        message: `Flipped ${result.toUpperCase()} (${win ? 'WIN' : 'LOSS'}) - Pending Resolution`,
-        timestamp: Date.now(), txHash: txHash!, isPending: true
+        type: 'coin', outcome: 'pending', amount: bet,
+        message: `Called ${choice.toUpperCase()} — Resolved on-chain by GenVM`,
+        timestamp: Date.now(), txHash, isPending: true
       });
 
-      if (isOwner) await resolveWager(wager);
-      else setTxStatus('confirmed');
-
+      refreshStats();
       setTimeout(() => setIsFlipping(false), 1000);
     } catch (e: any) {
       if (e.code === 'ACTION_REJECTED' || e.message?.includes('user rejected action')) {
@@ -98,12 +86,18 @@ export function CoinFlipGame({ balance, setBalance, account, addHistory, addPend
             Tails
           </button>
         </div>
-        <div className="flex items-center justify-center gap-4">
-          <div className="text-xs uppercase tracking-widest text-muted-foreground">Bet:</div>
+        <div className="flex items-center justify-center gap-3">
+          <button onClick={() => setBet(Math.max(1, bet - 1))} className="w-9 h-9 rounded-lg border border-border hover:border-amber-500/40 flex items-center justify-center">
+            <Minus className="w-4 h-4" />
+          </button>
           <input
-            type="number" value={bet} onChange={(e) => setBet(parseInt(e.target.value))}
+            type="number" min={1} value={bet}
+            onChange={(e) => setBet(Math.max(1, parseInt(e.target.value) || 1))}
             className="bg-transparent border-b border-border font-mono text-center w-20 focus:border-amber-500 outline-none text-foreground"
           />
+          <button onClick={() => setBet(bet + 1)} className="w-9 h-9 rounded-lg border border-border hover:border-amber-500/40 flex items-center justify-center">
+            <Plus className="w-4 h-4" />
+          </button>
           <div className="text-xs uppercase tracking-widest text-amber-500">GEN</div>
         </div>
       </div>
