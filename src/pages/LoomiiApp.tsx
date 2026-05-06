@@ -9,10 +9,10 @@ import { GoogleGenAI } from "@google/genai";
 import { ethers } from 'ethers';
 import { toast } from 'sonner';
 
-import type { GameType, GameResult, PendingWager, TxStatus } from '@/lib/loomii-types';
+import type { GameType, GameResult, TxStatus } from '@/lib/loomii-types';
 import {
   LOOMII_CONTRACT_ADDRESS, NETWORK_CONFIG,
-  INITIAL_BALANCE, fetchStats, resolveGame, withdrawFunds, emergencyDrain
+  INITIAL_BALANCE, fetchStats, fundHouse
 } from '@/lib/loomii-engine';
 import { GameCard } from '@/components/loomii/GameCard';
 import { AccountDropdown } from '@/components/loomii/AccountDropdown';
@@ -28,7 +28,7 @@ export default function LoomiiApp() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [activeGame, setActiveGame] = useState<GameType | null>(null);
   const [history, setHistory] = useState<GameResult[]>([]);
-  const [pendingWagers, setPendingWagers] = useState<PendingWager[]>([]);
+  
   
   const [txStatus, setTxStatus] = useState<TxStatus>('idle');
   const [currentTxHash, setCurrentTxHash] = useState<string | null>(null);
@@ -82,24 +82,16 @@ export default function LoomiiApp() {
       ) : [];
       setHistory(cleaned);
     }
-    const savedPending = localStorage.getItem('loomii_pending_wagers');
-    if (savedPending) {
-      const parsed = JSON.parse(savedPending);
-      const cleaned = Array.isArray(parsed) ? parsed.filter((item: any) =>
-        item.player !== "undefined" && item.player !== undefined && item.player !== null
-      ) : [];
-      setPendingWagers(cleaned);
-    }
+    // Cleanup any legacy pending-wager storage from prior contract version
+    localStorage.removeItem('loomii_pending_wagers');
   }, []);
 
   useEffect(() => { localStorage.setItem('loomii_history', JSON.stringify(history)); }, [history]);
-  useEffect(() => { localStorage.setItem('loomii_pending_wagers', JSON.stringify(pendingWagers)); }, [pendingWagers]);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('loomii_history');
     if (savedHistory?.includes('"undefined"')) {
       localStorage.removeItem('loomii_history');
-      localStorage.removeItem('loomii_pending_wagers');
       window.location.reload();
     }
   }, []);
@@ -145,64 +137,16 @@ export default function LoomiiApp() {
     setHistory(prev => [result, ...prev].slice(0, 50));
   };
 
-  const addPendingWager = (wager: PendingWager) => {
-    setPendingWagers(prev => [wager, ...prev]);
-  };
-
-  const removePendingWager = (txHash: string) => {
-    setPendingWagers(prev => prev.filter(w => w.txHash !== txHash));
-  };
-
-  const resolveWagerFn = async (wager: PendingWager) => {
-    try {
-      setTxStatus('processing');
-      if (!wager.player || typeof wager.player !== 'string' || !wager.player.startsWith('0x')) {
-        throw new Error(`Invalid player address in wager: ${wager.player}`);
-      }
-      await resolveGame(wager.player, wager.gameType, wager.betAmount, wager.data);
-      setTxStatus('confirmed');
-      removePendingWager(wager.txHash);
-      setHistory(prev => prev.map(item =>
-        item.txHash === wager.txHash ? { ...item, isPending: false, outcome: wager.simulatedOutcome } : item
-      ));
-      fetchContractStats();
-      return true;
-    } catch (err: any) {
-      if (err.message?.includes('already resolved') || err.data?.message?.includes('already resolved')) {
-        removePendingWager(wager.txHash);
-        setHistory(prev => prev.map(item =>
-          item.txHash === wager.txHash ? { ...item, isPending: false, outcome: wager.simulatedOutcome } : item
-        ));
-        setTxStatus('confirmed');
-        return true;
-      }
-      toast.error("On-chain resolution failed. Check explorer.");
-      setTxStatus('idle');
-      return false;
-    }
-  };
-
-  const syncWager = (txHash: string) => {
-    const wager = pendingWagers.find(w => w.txHash === txHash);
-    if (wager) {
-      removePendingWager(txHash);
-      setHistory(prev => prev.map(item =>
-        item.txHash === txHash ? { ...item, isPending: false, outcome: wager.simulatedOutcome } : item
-      ));
-      return true;
-    }
-    return false;
-  };
-
   const clearHistory = () => {
     setHistory([]);
     localStorage.removeItem('loomii_history');
   };
 
   const gameProps = {
-    balance, setBalance, account, addHistory, addPendingWager, resolveWager: resolveWagerFn,
-    ai: aiRef.current, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash, setError: (msg: string | null) => { if (msg) toast.error(msg, { duration: 5000 }); },
-    isOwner: account?.toLowerCase() === contractStats?.owner
+    balance, setBalance, account, addHistory,
+    ai: aiRef.current, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash,
+    setError: (msg: string | null) => { if (msg) toast.error(msg, { duration: 5000 }); },
+    refreshStats: fetchContractStats,
   };
 
   return (
@@ -497,82 +441,34 @@ export default function LoomiiApp() {
               </div>
             </div>
 
-            {pendingWagers.length > 0 && (
-              <div className="mt-8">
-                <div className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-4">Pending Resolutions ({pendingWagers.length})</div>
-                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                  {pendingWagers.map((wager) => (
-                    <div key={wager.txHash} className="flex items-center justify-between p-4 bg-secondary border border-border rounded-xl">
-                      <div className="flex items-center gap-4">
-                        <div className="text-xs font-bold uppercase">{wager.gameName}</div>
-                        <div className="text-[10px] font-mono text-muted-foreground">{wager.player.slice(0, 6)}...{wager.player.slice(-4)}</div>
-                        <div className="text-[10px] font-mono text-primary">{wager.betAmount} GEN</div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <a href={`${NETWORK_CONFIG.blockExplorerUrls[0]}transactions/${wager.txHash}`} target="_blank" rel="noopener noreferrer"
-                          className="text-[10px] text-primary hover:underline flex items-center gap-1">
-                          <ExternalLink className="w-2.5 h-2.5" /> TX
-                        </a>
-                        <button
-                          onClick={() => resolveWagerFn(wager)}
-                          className="px-4 py-2 bg-primary text-primary-foreground text-[10px] font-bold uppercase rounded-lg hover:scale-105 transition-transform"
-                        >
-                          Resolve Now
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="mt-8 flex gap-4">
+            <div className="mt-8 flex flex-wrap gap-4">
               <button
                 onClick={async () => {
-                  const amount = prompt("Enter amount to withdraw (GEN):");
+                  const amount = prompt("Enter amount of GEN to send to the house reserve:");
                   if (amount) {
                     try {
                       setTxStatus('processing');
-                      await withdrawFunds(amount);
+                      await fundHouse(amount);
                       setTxStatus('confirmed');
-                      alert("Withdrawal successful!");
+                      toast.success(`Funded house with ${amount} GEN`);
                       fetchContractStats();
                     } catch (e: any) {
                       setTxStatus('idle');
                       if (e.code === 'ACTION_REJECTED' || e.message?.includes('user rejected action')) {
-                        alert("Withdrawal cancelled by user.");
+                        toast.error("Funding cancelled by user.");
                       } else {
-                        alert("Withdrawal failed.");
+                        toast.error("Funding failed.");
                       }
                     }
                   }
                 }}
                 className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-bold uppercase tracking-widest text-xs"
               >
-                Withdraw Funds
+                Fund House
               </button>
-              <button
-                onClick={async () => {
-                  if (confirm("Are you sure you want to trigger emergency drain?")) {
-                    try {
-                      setTxStatus('processing');
-                      await emergencyDrain();
-                      setTxStatus('confirmed');
-                      alert("Emergency drain successful!");
-                      fetchContractStats();
-                    } catch (e: any) {
-                      setTxStatus('idle');
-                      if (e.code === 'ACTION_REJECTED' || e.message?.includes('user rejected action')) {
-                        alert("Emergency drain cancelled by user.");
-                      } else {
-                        alert("Emergency drain failed.");
-                      }
-                    }
-                  }
-                }}
-                className="px-6 py-3 border border-destructive text-destructive rounded-lg font-bold uppercase tracking-widest text-xs"
-              >
-                Emergency Drain
-              </button>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground/60 self-center max-w-md">
+                The new contract resolves wagers atomically inside play() via the GenLayer Equivalence Principle. No manual resolution needed.
+              </div>
             </div>
           </div>
         </div>

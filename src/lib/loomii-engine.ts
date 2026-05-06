@@ -18,14 +18,12 @@ export const NETWORK_CONFIG = {
 };
 
 /**
- * Lazily creates a GenLayer client. Called only when a write is needed,
- * avoiding the viem getAddress() crash at module load time.
+ * Lazily creates a GenLayer client. Called only when a write is needed.
  */
 async function getGenLayerClient() {
   const ethereum = (window as any).ethereum;
   if (!ethereum) throw new Error("No wallet provider found. Please install MetaMask.");
-  
-  // Get the connected account from the provider to satisfy genlayer-js
+
   const accounts: string[] = await ethereum.request({ method: 'eth_accounts' });
   if (!accounts || accounts.length === 0) {
     throw new Error("No account connected. Please connect your wallet first.");
@@ -39,34 +37,38 @@ async function getGenLayerClient() {
 }
 
 /**
- * Wager via genlayer-js writeContract so it's indexed as a Call transaction
- * with GenVM/consensus data on StudioNet.
+ * Place a wager via the new contract's `play` function.
+ * The bet amount is sent as native GEN value, and the contract resolves
+ * the outcome via the GenLayer Equivalence Principle (strict_eq).
  */
-export const playLoomii = async (gameType: number, move: string, userAddress: string | null | undefined) => {
+export const playLoomii = async (
+  gameType: number,
+  playerData: string,
+  userAddress: string | null | undefined,
+  betAmount: number
+) => {
   if (!userAddress) {
     return { success: false, error: "Wallet not connected. Please connect your wallet to play." };
   }
-
-  const addrStr = String(userAddress).toLowerCase();
-  if (addrStr === 'undefined' || addrStr === 'null' || addrStr === '' || !addrStr.startsWith('0x')) {
-    return { success: false, error: "Invalid wallet connection. Please reconnect your wallet." };
-  }
-
   if (!ethers.isAddress(userAddress)) {
-    return { success: false, error: "Invalid wallet address format. Please reconnect your wallet." };
+    return { success: false, error: "Invalid wallet address. Please reconnect your wallet." };
+  }
+  if (!betAmount || betAmount <= 0) {
+    return { success: false, error: "Bet amount must be greater than zero." };
   }
 
   try {
     const client = await getGenLayerClient();
+    const value = ethers.parseUnits(betAmount.toString(), 18);
 
     const hash = await client.writeContract({
       address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
-      functionName: 'wager',
-      args: [BigInt(gameType), move],
-      value: 0n,
+      functionName: 'play',
+      args: [BigInt(gameType), playerData],
+      value: BigInt(value.toString()),
     });
 
-    console.log("✅ Wager sent via GenLayer writeContract:", hash);
+    console.log("✅ Wager sent via GenLayer play():", hash);
     await client.waitForTransactionReceipt({ hash });
 
     return { success: true, hash };
@@ -77,54 +79,23 @@ export const playLoomii = async (gameType: number, move: string, userAddress: st
 };
 
 /**
- * Resolve a pending wager via genlayer-js writeContract so GenVM indexes it.
+ * Owner (or anyone) funds the house reserve so payouts can be made.
  */
-export const resolveGame = async (playerAddress: string, gameType: number, betAmount: number, playerData: string) => {
+export const fundHouse = async (amount: string) => {
   const client = await getGenLayerClient();
-  const validAddr = ethers.getAddress(playerAddress);
-  const betAmountBigInt = ethers.parseUnits(betAmount.toString(), 18);
-
+  const value = ethers.parseUnits(amount, 18);
   const hash = await client.writeContract({
     address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
-    functionName: 'resolve_game',
-    args: [validAddr as `0x${string}`, BigInt(gameType), betAmountBigInt, playerData],
-    value: 0n,
+    functionName: 'fund_house',
+    args: [],
+    value: BigInt(value.toString()),
   });
-
   await client.waitForTransactionReceipt({ hash });
   return hash;
 };
 
 /**
- * Owner withdrawal via genlayer-js writeContract.
- */
-export const withdrawFunds = async (amount: string) => {
-  const client = await getGenLayerClient();
-  const hash = await client.writeContract({
-    address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
-    functionName: 'withdraw',
-    args: [ethers.parseUnits(amount, 18)],
-    value: 0n,
-  });
-  await client.waitForTransactionReceipt({ hash });
-};
-
-/**
- * Emergency drain via genlayer-js writeContract.
- */
-export const emergencyDrain = async () => {
-  const client = await getGenLayerClient();
-  const hash = await client.writeContract({
-    address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
-    functionName: 'emergency_drain',
-    args: [],
-    value: 0n,
-  });
-  await client.waitForTransactionReceipt({ hash });
-};
-
-/**
- * Read-only stats fetch via ethers.js JsonRpcProvider (no signer needed).
+ * Read-only stats fetch via ethers.js JsonRpcProvider.
  */
 export const fetchStats = async () => {
   try {

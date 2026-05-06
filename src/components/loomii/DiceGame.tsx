@@ -1,32 +1,30 @@
 import { useState } from 'react';
 import { Dice5, RefreshCw, ShieldCheck, Plus, Minus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import type { GameProps, PendingWager } from '@/lib/loomii-types';
+import type { GameProps } from '@/lib/loomii-types';
 import { playLoomii } from '@/lib/loomii-engine';
 
-export function DiceGame({ balance, setBalance, account, addHistory, addPendingWager, resolveWager, ai, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash, setError, isOwner }: GameProps) {
+export function DiceGame({ account, addHistory, ai, setTxStatus, setCurrentTxHash, setError, refreshStats }: GameProps) {
   const [bet, setBet] = useState(10);
   const [target, setTarget] = useState(50);
   const [isOver, setIsOver] = useState(true);
   const [isRolling, setIsRolling] = useState(false);
-  const [result, setResult] = useState<number | null>(null);
   const [vibe, setVibe] = useState<string | null>(null);
 
   const play = async () => {
-    if (!account || typeof account !== 'string' || !account.startsWith('0x')) {
+    if (!account || !account.startsWith('0x')) {
       setError("Connect your wallet first");
       return;
     }
 
     setIsRolling(true);
-    setResult(null);
     setVibe(null);
     setTxStatus('staking');
 
     try {
       const gameData = { target, isOver, prediction: isOver ? 'Over' : 'Under', bet };
       const gameDataStr = JSON.stringify(gameData);
-      const txResult = await playLoomii(0, gameDataStr, account);
+      const txResult = await playLoomii(0, gameDataStr, account, bet);
 
       if (!txResult.success) {
         setError(txResult.error || "Transaction failed");
@@ -35,48 +33,28 @@ export function DiceGame({ balance, setBalance, account, addHistory, addPendingW
         return;
       }
 
-      const txHash = txResult.hash;
+      const txHash = txResult.hash!;
       setCurrentTxHash(txHash);
       setTxStatus('confirmed');
 
-      const roll = Math.floor(Math.random() * 100) + 1;
-      const win = isOver ? roll > target : roll < target;
-
-      const wager: PendingWager = {
-        player: account, gameType: 0, betAmount: bet, data: gameDataStr,
-        timestamp: Date.now(), txHash: txHash!, gameName: 'Dice',
-        simulatedOutcome: win ? 'win' : 'loss'
-      };
-      addPendingWager(wager);
-
-      let vibeCheck = "The block spirits are silent.";
+      let vibeCheck = "Oracle deciding... check explorer for GenVM result.";
       try {
         const response = await ai?.models?.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `The transaction hash is ${txHash}. The user bet ${bet} credits on ${target} ${isOver ? 'Over' : 'Under'}. The result was ${roll}. Give a witty, short 'vibe check' on the luck of this block. Max 15 words.`,
+          contents: `Player bet ${bet} GEN on ${target} ${isOver ? 'Over' : 'Under'}. Give a witty short 'vibe check' on this on-chain wager. Max 15 words.`,
           config: { maxOutputTokens: 100 }
         });
         vibeCheck = response?.text || vibeCheck;
-      } catch (e: any) {
-        if (e.message?.includes('RESOURCE_EXHAUSTED')) {
-          vibeCheck = "Intelligent vibe check unavailable (Quota Exceeded).";
-        }
-      }
-
-      setResult(roll);
+      } catch {}
       setVibe(vibeCheck);
 
       addHistory({
-        type: 'dice', outcome: win ? 'win' : 'loss', amount: bet,
-        message: `Rolled ${roll} (${win ? 'WIN' : 'LOSS'}) - Pending Resolution`,
-        vibe: vibeCheck, timestamp: Date.now(), txHash: txHash!, isPending: true
+        type: 'dice', outcome: 'pending', amount: bet,
+        message: `Bet on ${isOver ? 'Over' : 'Under'} ${target} — Resolved on-chain by GenVM`,
+        vibe: vibeCheck, timestamp: Date.now(), txHash, isPending: true
       });
 
-      if (isOwner) {
-        await resolveWager(wager);
-      } else {
-        setTxStatus('confirmed');
-      }
+      refreshStats();
     } catch (e: any) {
       if (e.code === 'ACTION_REJECTED' || e.message?.includes('user rejected action')) {
         setError("Transaction cancelled by user.");
@@ -180,12 +158,14 @@ export function DiceGame({ balance, setBalance, account, addHistory, addPendingW
                   Consulting Oracle...
                 </div>
               </motion.div>
-            ) : result !== null ? (
+            ) : vibe ? (
               <motion.div key="result" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
-                <div className="text-8xl font-black italic tracking-tighter mb-4 text-primary">{result}</div>
-                <div className="max-w-[250px] mx-auto">
+                <Dice5 className="w-16 h-16 mb-4 mx-auto text-primary" />
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Wager Submitted</div>
+                <div className="max-w-[280px] mx-auto">
                   <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Block Vibe</div>
                   <p className="text-sm italic text-foreground/80 leading-relaxed">"{vibe}"</p>
+                  <p className="text-[10px] text-muted-foreground/60 mt-3">GenVM is resolving the outcome on-chain.</p>
                 </div>
               </motion.div>
             ) : (
