@@ -18,52 +18,58 @@ class LoomiiAI(gl.Contract):
         self.house_reserve = u256(0)
 
     @gl.public.write
-    def wager(self, game_type: int, data: str) -> None:
+    def fund_house(self) -> None:
+        # Allows the owner (or anyone) to fund the house to cover payouts
+        self.house_reserve += gl.message.value
+
+    @gl.public.write
+    def play(self, game_type: int, player_data: str) -> str:
         amount = gl.message.value
         assert amount > 0, "Bet amount must be greater than zero"
+
+        # Register wager immediately
         self.total_wagered += amount
         self.house_reserve += amount
 
-    @gl.public.write
-    def resolve_game(self, player_address: Address, game_type: int, bet_amount: int, player_data: str) -> str:
-        assert gl.message.sender_address == self.owner, "Only the contract owner can resolve games"
+        player_addr = gl.message.sender_address.as_hex
 
-        input_data = f"""
-        Game Context:
-        - Player: {player_address.as_hex}
-        - Game: {game_type} (0:Dice, 1:RPS, 2:Coin, 3:Mines)
-        - Bet: {bet_amount} GEN
-        - Choices: {player_data}
-        """
+        # 1. Define the parameterless non-deterministic function
+        def evaluate_game() -> str:
+            input_data = f"""
+            Game Context:
+            - Player: {player_addr}
+            - Game: {game_type} (0:Dice, 1:RPS, 2:Coin, 3:Mines)
+            - Bet: {amount} GEN
+            - Player Choices/Move: {player_data}
+            """
 
-        task = """
-        Analyze the game data and determine if the player won. 
-        Return ONLY a JSON object. No markdown, no explanation.
-        Format: {"win": boolean, "vibe": "string"}
-        """
+            task = """
+            Act as an impartial game server. Evaluate the player's choices against standard rules.
+            Use the Player's address and choices to determine the opponent's move or outcome pseudo-randomly but deterministically across validator runs.
+            Return ONLY a valid JSON object. No markdown, no explanation.
+            Format: {"win": boolean, "vibe": "string"}
+            """
+            return gl.nondet.exec_prompt(input_data + "\n" + task)
 
-        # Using prompt_non_comparative for AI Consensus
-        raw_output = gl.eq_principle.prompt_non_comparative(
-            lambda: input_data,
-            task=task,
-            criteria="The response must be a single valid JSON object with a boolean 'win' field.",
-        )
+        # 2. Execute under strict equivalence (Resolves E025/E026)
+        raw_output = gl.eq_principle.strict_eq(evaluate_game)
 
+        # 3. Parse outcome and execute state changes
         try:
-            # Robust JSON extraction (Standard for GenLayer to avoid parsing errors)
+            # Robust JSON extraction
             json_match = re.search(r'\{.*\}', raw_output, re.DOTALL)
             if not json_match:
-                raise ValueError("No JSON found in oracle response")
+                return "ERROR: No JSON found in oracle response"
             
             result_json = json.loads(json_match.group())
-            is_win = result_json["win"]
-            vibe = result_json.get("vibe", "The oracle has spoken.")
+            is_win = bool(result_json.get("win", False))
+            vibe = str(result_json.get("vibe", "The oracle has spoken."))
 
             if is_win:
-                payout_amt = u256(bet_amount) * 2
+                payout_amt = u256(amount * 2)
                 assert self.house_reserve >= payout_amt, "Insufficient house reserve"
                 
-                gl.transfer(player_address, payout_amt)
+                gl.transfer(gl.message.sender_address, payout_amt)
                 self.total_paid += payout_amt
                 self.house_reserve -= payout_amt
                 return f"WIN: {vibe}"
