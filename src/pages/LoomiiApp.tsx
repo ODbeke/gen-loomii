@@ -441,7 +441,36 @@ export default function LoomiiApp() {
               </div>
             </div>
 
-            {pendingWagers.length > 0 && (
+            <div className="mt-8 flex flex-wrap gap-4">
+              <button
+                onClick={async () => {
+                  const amount = prompt("Enter amount of GEN to send to the house reserve:");
+                  if (amount) {
+                    try {
+                      setTxStatus('processing');
+                      await fundHouse(amount);
+                      setTxStatus('confirmed');
+                      toast.success(`Funded house with ${amount} GEN`);
+                      fetchContractStats();
+                    } catch (e: any) {
+                      setTxStatus('idle');
+                      if (e.code === 'ACTION_REJECTED' || e.message?.includes('user rejected action')) {
+                        toast.error("Funding cancelled by user.");
+                      } else {
+                        toast.error("Funding failed.");
+                      }
+                    }
+                  }
+                }}
+                className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-bold uppercase tracking-widest text-xs"
+              >
+                Fund House
+              </button>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground/60 self-center max-w-md">
+                The new contract resolves wagers atomically inside play() via the GenLayer Equivalence Principle. No manual resolution needed.
+              </div>
+            </div>
+
               <div className="mt-8">
                 <div className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-4">Pending Resolutions ({pendingWagers.length})</div>
                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
