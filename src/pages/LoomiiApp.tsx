@@ -82,24 +82,16 @@ export default function LoomiiApp() {
       ) : [];
       setHistory(cleaned);
     }
-    const savedPending = localStorage.getItem('loomii_pending_wagers');
-    if (savedPending) {
-      const parsed = JSON.parse(savedPending);
-      const cleaned = Array.isArray(parsed) ? parsed.filter((item: any) =>
-        item.player !== "undefined" && item.player !== undefined && item.player !== null
-      ) : [];
-      setPendingWagers(cleaned);
-    }
+    // Cleanup any legacy pending-wager storage from prior contract version
+    localStorage.removeItem('loomii_pending_wagers');
   }, []);
 
   useEffect(() => { localStorage.setItem('loomii_history', JSON.stringify(history)); }, [history]);
-  useEffect(() => { localStorage.setItem('loomii_pending_wagers', JSON.stringify(pendingWagers)); }, [pendingWagers]);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('loomii_history');
     if (savedHistory?.includes('"undefined"')) {
       localStorage.removeItem('loomii_history');
-      localStorage.removeItem('loomii_pending_wagers');
       window.location.reload();
     }
   }, []);
@@ -145,64 +137,16 @@ export default function LoomiiApp() {
     setHistory(prev => [result, ...prev].slice(0, 50));
   };
 
-  const addPendingWager = (wager: PendingWager) => {
-    setPendingWagers(prev => [wager, ...prev]);
-  };
-
-  const removePendingWager = (txHash: string) => {
-    setPendingWagers(prev => prev.filter(w => w.txHash !== txHash));
-  };
-
-  const resolveWagerFn = async (wager: PendingWager) => {
-    try {
-      setTxStatus('processing');
-      if (!wager.player || typeof wager.player !== 'string' || !wager.player.startsWith('0x')) {
-        throw new Error(`Invalid player address in wager: ${wager.player}`);
-      }
-      await resolveGame(wager.player, wager.gameType, wager.betAmount, wager.data);
-      setTxStatus('confirmed');
-      removePendingWager(wager.txHash);
-      setHistory(prev => prev.map(item =>
-        item.txHash === wager.txHash ? { ...item, isPending: false, outcome: wager.simulatedOutcome } : item
-      ));
-      fetchContractStats();
-      return true;
-    } catch (err: any) {
-      if (err.message?.includes('already resolved') || err.data?.message?.includes('already resolved')) {
-        removePendingWager(wager.txHash);
-        setHistory(prev => prev.map(item =>
-          item.txHash === wager.txHash ? { ...item, isPending: false, outcome: wager.simulatedOutcome } : item
-        ));
-        setTxStatus('confirmed');
-        return true;
-      }
-      toast.error("On-chain resolution failed. Check explorer.");
-      setTxStatus('idle');
-      return false;
-    }
-  };
-
-  const syncWager = (txHash: string) => {
-    const wager = pendingWagers.find(w => w.txHash === txHash);
-    if (wager) {
-      removePendingWager(txHash);
-      setHistory(prev => prev.map(item =>
-        item.txHash === txHash ? { ...item, isPending: false, outcome: wager.simulatedOutcome } : item
-      ));
-      return true;
-    }
-    return false;
-  };
-
   const clearHistory = () => {
     setHistory([]);
     localStorage.removeItem('loomii_history');
   };
 
   const gameProps = {
-    balance, setBalance, account, addHistory, addPendingWager, resolveWager: resolveWagerFn,
-    ai: aiRef.current, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash, setError: (msg: string | null) => { if (msg) toast.error(msg, { duration: 5000 }); },
-    isOwner: account?.toLowerCase() === contractStats?.owner
+    balance, setBalance, account, addHistory,
+    ai: aiRef.current, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash,
+    setError: (msg: string | null) => { if (msg) toast.error(msg, { duration: 5000 }); },
+    refreshStats: fetchContractStats,
   };
 
   return (
