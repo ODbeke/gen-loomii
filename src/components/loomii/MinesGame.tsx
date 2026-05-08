@@ -3,7 +3,7 @@ import { Bomb, RefreshCw, ShieldCheck, Plus, Minus } from 'lucide-react';
 import type { GameProps } from '@/lib/loomii-types';
 import { playLoomii } from '@/lib/loomii-engine';
 
-export function MinesGame({ account, addHistory, ai, setTxStatus, setCurrentTxHash, setError, refreshStats }: GameProps) {
+export function MinesGame({ account, addHistory, setTxStatus, setCurrentTxHash, setError, refreshStats }: GameProps) {
   const [bet, setBet] = useState(10);
   const [numMines, setNumMines] = useState(5);
   const [selectedCell, setSelectedCell] = useState<number | null>(null);

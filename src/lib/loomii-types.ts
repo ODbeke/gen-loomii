@@ -19,7 +19,6 @@ export interface GameProps {
   setBalance: (b: number) => void;
   account: string | null;
   addHistory: (result: GameResult) => void;
-  ai?: any;
   setTxStatus: (status: TxStatus) => void;
   currentTxHash: string | null;
   setCurrentTxHash: (hash: string | null) => void;

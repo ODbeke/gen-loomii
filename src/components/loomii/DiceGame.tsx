@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { GameProps } from '@/lib/loomii-types';
 import { playLoomii } from '@/lib/loomii-engine';
 
-export function DiceGame({ account, addHistory, ai, setTxStatus, setCurrentTxHash, setError, refreshStats }: GameProps) {
+export function DiceGame({ account, addHistory, setTxStatus, setCurrentTxHash, setError, refreshStats }: GameProps) {
   const [bet, setBet] = useState(10);
   const [target, setTarget] = useState(50);
   const [isOver, setIsOver] = useState(true);

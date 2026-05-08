@@ -5,7 +5,6 @@ import {
   ArrowRightLeft, ChevronDown, Construction, Fuel, LogOut, ExternalLink, Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI } from "@google/genai";
 import { ethers } from 'ethers';
 import { toast } from 'sonner';
 
@@ -55,11 +54,7 @@ export default function LoomiiApp() {
     return () => { if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current); };
   }, [txStatus]);
 
-  const aiRef = useRef<GoogleGenAI | null>(null);
-
   useEffect(() => {
-    aiRef.current = new GoogleGenAI({ apiKey: (import.meta as any).env?.VITE_GEMINI_API_KEY || '' });
-
     if (typeof window !== 'undefined' && (window as any).ethereum) {
       const eth = (window as any).ethereum;
       eth.on('accountsChanged', (accounts: string[]) => {
@@ -144,7 +139,7 @@ export default function LoomiiApp() {
 
   const gameProps = {
     balance, setBalance, account, addHistory,
-    ai: aiRef.current, setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash,
+    setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash,
     setError: (msg: string | null) => { if (msg) toast.error(msg, { duration: 5000 }); },
     refreshStats: fetchContractStats,
   };
