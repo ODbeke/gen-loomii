@@ -67,6 +67,8 @@ export const playLoomii = async (
       functionName: 'play',
       args: [BigInt(gameType), playerData],
       value: BigInt(value.toString()),
+      maxFeePerGas: 0n,
+      maxPriorityFeePerGas: 0n,
     });
 
     console.log("✅ Wager sent via GenLayer play():", hash);
@@ -107,6 +109,8 @@ export const fundHouse = async (amount: string) => {
     functionName: 'fund_house',
     args: [],
     value: BigInt(value.toString()),
+    maxFeePerGas: 0n,
+    maxPriorityFeePerGas: 0n,
   });
   await client.waitForTransactionReceipt({ hash });
   return hash;
