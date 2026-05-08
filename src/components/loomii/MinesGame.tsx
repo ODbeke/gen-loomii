@@ -29,7 +29,10 @@ export function MinesGame({ account, addHistory, ai, setTxStatus, setCurrentTxHa
     try {
       const gameData = { numMines, guess: selectedCell, bet };
       const gameDataStr = JSON.stringify(gameData);
-      const txResult = await playLoomii(3, gameDataStr, account, bet);
+      const txResult = await playLoomii(3, gameDataStr, account, bet, (hash) => {
+        setCurrentTxHash(hash);
+        setTxStatus('processing');
+      });
 
       if (!txResult.success) {
         setError(txResult.error || "Transaction failed");
@@ -39,25 +42,24 @@ export function MinesGame({ account, addHistory, ai, setTxStatus, setCurrentTxHa
       }
 
       const txHash = txResult.hash!;
+      const result = txResult.result;
+      const isWin = result?.status === 'WIN';
+      const resultVibe = result?.vibe || "The grid is revealed.";
+
       setCurrentTxHash(txHash);
       setTxStatus('confirmed');
       setSubmitted(true);
-
-      let oracleHint = "Oracle silent. Trust your instincts.";
-      try {
-        const response = await ai?.models?.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: `Player picked cell ${selectedCell} on a 5x5 mines grid with ${numMines} mines. Give a cryptic, witty 1-line vibe (max 18 words).`,
-          config: { maxOutputTokens: 100 }
-        });
-        oracleHint = response?.text || oracleHint;
-      } catch {}
-      setHint(oracleHint);
+      setHint(resultVibe);
 
       addHistory({
-        type: 'mines', outcome: 'pending', amount: bet,
-        message: `Cell ${selectedCell} with ${numMines} mines — Resolved on-chain by GenVM`,
-        vibe: oracleHint, timestamp: Date.now(), txHash, isPending: true
+        type: 'mines', 
+        outcome: isWin ? 'win' : 'loss', 
+        amount: bet,
+        message: `${isWin ? 'CLEARED' : 'BOOMED'} cell ${selectedCell}`,
+        vibe: resultVibe, 
+        timestamp: Date.now(), 
+        txHash, 
+        isPending: false
       });
 
       refreshStats();

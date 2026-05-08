@@ -29,7 +29,10 @@ export function RPSGame({ account, addHistory, setTxStatus, setCurrentTxHash, se
     try {
       const gameData = { userMove: move, bet };
       const gameDataStr = JSON.stringify(gameData);
-      const txResult = await playLoomii(1, gameDataStr, account, bet);
+      const txResult = await playLoomii(1, gameDataStr, account, bet, (hash) => {
+        setCurrentTxHash(hash);
+        setTxStatus('processing');
+      });
 
       if (!txResult.success) {
         setError(txResult.error || "Transaction failed");
@@ -39,14 +42,23 @@ export function RPSGame({ account, addHistory, setTxStatus, setCurrentTxHash, se
       }
 
       const txHash = txResult.hash!;
+      const result = txResult.result;
+      const isWin = result?.status === 'WIN';
+      const resultVibe = result?.vibe || "The duel is settled.";
+
       setCurrentTxHash(txHash);
       setTxStatus('confirmed');
       setUserMove(move);
 
       addHistory({
-        type: 'rps', outcome: 'pending', amount: bet,
-        message: `Played ${move.toUpperCase()} — Resolved on-chain by GenVM`,
-        timestamp: Date.now(), txHash, isPending: true
+        type: 'rps', 
+        outcome: isWin ? 'win' : 'loss', 
+        amount: bet,
+        message: `${isWin ? 'VICTORY' : 'DEFEAT'} with ${move.toUpperCase()}`,
+        vibe: resultVibe,
+        timestamp: Date.now(), 
+        txHash, 
+        isPending: false
       });
 
       refreshStats();

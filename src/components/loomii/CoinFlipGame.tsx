@@ -22,7 +22,10 @@ export function CoinFlipGame({ account, addHistory, setTxStatus, setCurrentTxHas
     try {
       const gameData = { choice, bet };
       const gameDataStr = JSON.stringify(gameData);
-      const txResult = await playLoomii(2, gameDataStr, account, bet);
+      const txResult = await playLoomii(2, gameDataStr, account, bet, (hash) => {
+        setCurrentTxHash(hash);
+        setTxStatus('processing');
+      });
 
       if (!txResult.success) {
         setError(txResult.error || "Transaction failed");
@@ -32,14 +35,23 @@ export function CoinFlipGame({ account, addHistory, setTxStatus, setCurrentTxHas
       }
 
       const txHash = txResult.hash!;
+      const result = txResult.result;
+      const isWin = result?.status === 'WIN';
+      const resultVibe = result?.vibe || "The coin has landed.";
+
       setCurrentTxHash(txHash);
       setTxStatus('confirmed');
       setSide(choice);
 
       addHistory({
-        type: 'coin', outcome: 'pending', amount: bet,
-        message: `Called ${choice.toUpperCase()} — Resolved on-chain by GenVM`,
-        timestamp: Date.now(), txHash, isPending: true
+        type: 'coin', 
+        outcome: isWin ? 'win' : 'loss', 
+        amount: bet,
+        message: `${isWin ? 'WON' : 'LOST'} calling ${choice.toUpperCase()}`,
+        vibe: resultVibe,
+        timestamp: Date.now(), 
+        txHash, 
+        isPending: false
       });
 
       refreshStats();

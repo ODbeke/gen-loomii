@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { createClient } from 'genlayer-js';
 import { studionet } from 'genlayer-js/chains';
 
-export const LOOMII_CONTRACT_ADDRESS = "0x929D3a62b12F1483f9E75005EE6e9AB0016e7Feb";
+export const LOOMII_CONTRACT_ADDRESS = "0x33f2DAef61d792D1cFA2fE9635A873387e768775";
 export const INITIAL_BALANCE = 1000000;
 
 export const LOOMII_ABI_ETHERS = [
@@ -45,7 +45,8 @@ export const playLoomii = async (
   gameType: number,
   playerData: string,
   userAddress: string | null | undefined,
-  betAmount: number
+  betAmount: number,
+  onHash?: (hash: string) => void
 ) => {
   if (!userAddress) {
     return { success: false, error: "Wallet not connected. Please connect your wallet to play." };
@@ -69,9 +70,26 @@ export const playLoomii = async (
     });
 
     console.log("✅ Wager sent via GenLayer play():", hash);
-    await client.waitForTransactionReceipt({ hash });
+    if (onHash) onHash(hash);
+    
+    const receipt = await client.waitForTransactionReceipt({ hash });
+    
+    // In GenLayer, the return value is often in the receipt's result field
+    // or can be fetched via getTransactionReceipt
+    let result = { status: 'UNKNOWN', vibe: 'The oracle is silent.' };
+    try {
+      if (receipt.output) {
+        // If the SDK provides output directly
+        const decoded = typeof receipt.output === 'string' && receipt.output.startsWith('0x')
+          ? ethers.toUtf8String(receipt.output)
+          : receipt.output;
+        result = JSON.parse(decoded);
+      }
+    } catch (e) {
+      console.warn("Could not parse transaction output:", e);
+    }
 
-    return { success: true, hash };
+    return { success: true, hash, result };
   } catch (error: any) {
     console.error("❌ Loomii Engine Error:", error.message);
     return { success: false, error: error.message };

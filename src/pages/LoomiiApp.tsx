@@ -271,9 +271,9 @@ export default function LoomiiApp() {
           )}
         </AnimatePresence>
 
-        {/* Transaction Lifecycle Overlay (Staking only) */}
+        {/* Transaction Lifecycle Overlay (Staking & Processing) */}
         <AnimatePresence>
-          {txStatus === 'staking' && (
+          {(txStatus === 'staking' || txStatus === 'processing') && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-6"
@@ -284,16 +284,20 @@ export default function LoomiiApp() {
               >
                 <div className="mb-8">
                   <div className="w-24 h-24 rounded-full border-4 border-border mx-auto flex items-center justify-center">
-                    <Wallet className="w-10 h-10 text-primary animate-pulse" />
+                    <RefreshCw className={`w-10 h-10 text-primary ${txStatus === 'processing' ? 'animate-spin' : 'animate-pulse'}`} />
                   </div>
                 </div>
-                <h2 className="text-2xl font-bold uppercase italic tracking-tight mb-2">Finalizing Transaction...</h2>
+                <h2 className="text-2xl font-bold uppercase italic tracking-tight mb-2">
+                  {txStatus === 'staking' ? 'Confirming Wager...' : 'AI Oracle Resolving...'}
+                </h2>
                 <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
-                  Confirm the transaction in your wallet to place your wager on the GenLayer StudioNet.
+                  {txStatus === 'staking' 
+                    ? 'Confirm the transaction in your wallet to place your wager.' 
+                    : 'The GenVM validators are reaching consensus on the game outcome.'}
                 </p>
                 <div className="flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground/50">
                   <ShieldCheck className="w-3 h-3" />
-                  Secure On-Chain Transaction
+                  Verified On-Chain
                 </div>
               </motion.div>
             </motion.div>

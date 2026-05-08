@@ -24,7 +24,10 @@ export function DiceGame({ account, addHistory, ai, setTxStatus, setCurrentTxHas
     try {
       const gameData = { target, isOver, prediction: isOver ? 'Over' : 'Under', bet };
       const gameDataStr = JSON.stringify(gameData);
-      const txResult = await playLoomii(0, gameDataStr, account, bet);
+      const txResult = await playLoomii(0, gameDataStr, account, bet, (hash) => {
+        setCurrentTxHash(hash);
+        setTxStatus('processing');
+      });
 
       if (!txResult.success) {
         setError(txResult.error || "Transaction failed");
@@ -34,24 +37,23 @@ export function DiceGame({ account, addHistory, ai, setTxStatus, setCurrentTxHas
       }
 
       const txHash = txResult.hash!;
+      const result = txResult.result;
+      const isWin = result?.status === 'WIN';
+      const resultVibe = result?.vibe || "The oracle has spoken.";
+      
       setCurrentTxHash(txHash);
       setTxStatus('confirmed');
-
-      let vibeCheck = "Oracle deciding... check explorer for GenVM result.";
-      try {
-        const response = await ai?.models?.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: `Player bet ${bet} GEN on ${target} ${isOver ? 'Over' : 'Under'}. Give a witty short 'vibe check' on this on-chain wager. Max 15 words.`,
-          config: { maxOutputTokens: 100 }
-        });
-        vibeCheck = response?.text || vibeCheck;
-      } catch {}
-      setVibe(vibeCheck);
+      setVibe(resultVibe);
 
       addHistory({
-        type: 'dice', outcome: 'pending', amount: bet,
-        message: `Bet on ${isOver ? 'Over' : 'Under'} ${target} — Resolved on-chain by GenVM`,
-        vibe: vibeCheck, timestamp: Date.now(), txHash, isPending: true
+        type: 'dice', 
+        outcome: isWin ? 'win' : 'loss', 
+        amount: bet,
+        message: `${isWin ? 'WON' : 'LOST'} on ${isOver ? 'Over' : 'Under'} ${target}`,
+        vibe: resultVibe, 
+        timestamp: Date.now(), 
+        txHash, 
+        isPending: false
       });
 
       refreshStats();
