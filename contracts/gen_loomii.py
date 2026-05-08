@@ -22,62 +22,63 @@ class LoomiiAI(gl.Contract):
         # Allows the owner (or anyone) to fund the house to cover payouts
         self.house_reserve += gl.message.value
 
+    def _evaluate_game(self, player_addr: str, game_type: int, amount: u256, player_data: str) -> str:
+        input_data: str = f"""
+        Game Context:
+        - Player: {player_addr}
+        - Game: {game_type} (0:Dice, 1:RPS, 2:Coin, 3:Mines)
+        - Bet: {amount} GEN
+        - Player Choices/Move: {player_data}
+        """
+
+        task: str = """
+        Act as an impartial game server. Evaluate the player's choices against standard rules.
+        Use the Player's address and choices to determine the opponent's move or outcome pseudo-randomly but deterministically.
+        Return ONLY a valid JSON object. No markdown, no explanation.
+        Format: {"win": boolean, "vibe": "string"}
+        """
+        return gl.nondet.exec_prompt(input_data + "\n" + task)
+
     @gl.public.write
     def play(self, game_type: int, player_data: str) -> str:
-        amount = gl.message.value
-        assert amount > 0, "Bet amount must be greater than zero"
+        amount: u256 = gl.message.value
+        assert amount > u256(0), "Bet amount must be greater than zero"
 
         # Register wager immediately
         self.total_wagered += amount
         self.house_reserve += amount
 
-        player_addr = gl.message.sender_address.as_hex
+        player_addr: str = gl.message.sender_address.as_hex
 
-        # 1. Define the parameterless non-deterministic function
-        def evaluate_game() -> str:
-            input_data = f"""
-            Game Context:
-            - Player: {player_addr}
-            - Game: {game_type} (0:Dice, 1:RPS, 2:Coin, 3:Mines)
-            - Bet: {amount} GEN
-            - Player Choices/Move: {player_data}
-            """
+        # Execute under strict equivalence
+        raw_output: str = gl.eq_principle.strict_eq(
+            lambda: self._evaluate_game(player_addr, game_type, amount, player_data)
+        )
 
-            task = """
-            Act as an impartial game server. Evaluate the player's choices against standard rules.
-            Use the Player's address and choices to determine the opponent's move or outcome pseudo-randomly but deterministically across validator runs.
-            Return ONLY a valid JSON object. No markdown, no explanation.
-            Format: {"win": boolean, "vibe": "string"}
-            """
-            return gl.nondet.exec_prompt(input_data + "\n" + task)
-
-        # 2. Execute under strict equivalence (Resolves E025/E026)
-        raw_output = gl.eq_principle.strict_eq(evaluate_game)
-
-        # 3. Parse outcome and execute state changes
+        # Parse outcome and execute state changes
         try:
             # Robust JSON extraction
             json_match = re.search(r'\{.*\}', raw_output, re.DOTALL)
             if not json_match:
-                return "ERROR: No JSON found in oracle response"
+                return json.dumps({"status": "ERROR", "message": "No JSON found in oracle response"})
             
-            result_json = json.loads(json_match.group())
-            is_win = bool(result_json.get("win", False))
-            vibe = str(result_json.get("vibe", "The oracle has spoken."))
+            result_json: dict = json.loads(json_match.group())
+            is_win: bool = bool(result_json.get("win", False))
+            vibe: str = str(result_json.get("vibe", "The oracle has spoken."))
 
             if is_win:
-                payout_amt = u256(amount * 2)
+                payout_amt: u256 = amount * u256(2)
                 assert self.house_reserve >= payout_amt, "Insufficient house reserve"
                 
                 gl.transfer(gl.message.sender_address, payout_amt)
                 self.total_paid += payout_amt
                 self.house_reserve -= payout_amt
-                return f"WIN: {vibe}"
+                return json.dumps({"status": "WIN", "vibe": vibe})
             
-            return f"LOSS: {vibe}"
+            return json.dumps({"status": "LOSS", "vibe": vibe})
 
         except Exception as e:
-            return f"ERROR: Oracle parsing failed - {str(e)}"
+            return json.dumps({"status": "ERROR", "message": f"Oracle parsing failed - {str(e)}"})
 
     @gl.public.view
     def get_stats(self) -> str:
