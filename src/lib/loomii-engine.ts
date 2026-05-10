@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { createClient } from 'genlayer-js';
-import { studionet } from 'genlayer-js/chains';
+import { testnetBradbury } from 'genlayer-js/chains';
 
 export const LOOMII_CONTRACT_ADDRESS = "0xfbE9673c4fB05B8F3065277D3Cc628162C71696E";
 export const INITIAL_BALANCE = 1000000;
@@ -17,19 +17,6 @@ export const NETWORK_CONFIG = {
   blockExplorerUrls: ['https://explorer.testnet.genlayer.com/'],
 };
 
-const bradbury = {
-  id: 4221,
-  name: 'GenLayer Testnet Bradbury',
-  nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 },
-  rpcUrls: {
-    default: { http: ['https://rpc.testnet-chain.genlayer.com'] },
-    public: { http: ['https://rpc.testnet-chain.genlayer.com'] },
-  },
-  blockExplorers: {
-    default: { name: 'Explorer', url: 'https://explorer.testnet.genlayer.com' },
-  },
-};
-
 /**
  * Lazily creates a GenLayer client. Called only when a write is needed.
  */
@@ -44,7 +31,7 @@ async function getGenLayerClient() {
   const account = accounts[0] as `0x${string}`;
 
   return createClient({
-    chain: bradbury as any,
+    chain: testnetBradbury,
     account,
   });
 }
