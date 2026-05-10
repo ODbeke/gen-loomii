@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { createClient } from 'genlayer-js';
 import { studionet } from 'genlayer-js/chains';
 
-export const LOOMII_CONTRACT_ADDRESS = "0x33f2DAef61d792D1cFA2fE9635A873387e768775";
+export const LOOMII_CONTRACT_ADDRESS = "0xfbE9673c4fB05B8F3065277D3Cc628162C71696E";
 export const INITIAL_BALANCE = 1000000;
 
 export const LOOMII_ABI_ETHERS = [
@@ -10,11 +10,24 @@ export const LOOMII_ABI_ETHERS = [
 ];
 
 export const NETWORK_CONFIG = {
-  chainId: '0xF22F',
-  chainName: 'GenLayer StudioNet',
+  chainId: '0x107D', // 4221
+  chainName: 'GenLayer Testnet Bradbury',
   nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 },
-  rpcUrls: ['https://studio.genlayer.com/api'],
-  blockExplorerUrls: ['https://explorer-studio.genlayer.com/'],
+  rpcUrls: ['https://rpc.testnet-chain.genlayer.com'],
+  blockExplorerUrls: ['https://explorer.testnet.genlayer.com/'],
+};
+
+const bradbury = {
+  id: 4221,
+  name: 'GenLayer Testnet Bradbury',
+  nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['https://rpc.testnet-chain.genlayer.com'] },
+    public: { http: ['https://rpc.testnet-chain.genlayer.com'] },
+  },
+  blockExplorers: {
+    default: { name: 'GenLayer Explorer', url: 'https://explorer.testnet.genlayer.com' },
+  },
 };
 
 /**
@@ -31,7 +44,7 @@ async function getGenLayerClient() {
   const account = accounts[0] as `0x${string}`;
 
   return createClient({
-    chain: studionet,
+    chain: bradbury as any,
     account,
   });
 }

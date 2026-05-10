@@ -109,7 +109,7 @@ export default function LoomiiApp() {
       }
       const sanitizedAddress = ethers.getAddress(accounts[0]);
       const network = await provider.getNetwork();
-      if (network.chainId !== 61999n) {
+      if (network.chainId !== 4221n) {
         try {
           await (window as any).ethereum.request({
             method: 'wallet_switchEthereumChain',
@@ -239,7 +239,7 @@ export default function LoomiiApp() {
                 >
                   <Wallet className="w-12 h-12 text-primary mx-auto mb-4" />
                   <h3 className="text-2xl font-bold uppercase italic mb-2">Wallet Required</h3>
-                  <p className="text-muted-foreground mb-6 text-sm">Connect your MetaMask to GenLayer StudioNet to start playing and earning GEN.</p>
+                  <p className="text-muted-foreground mb-6 text-sm">Connect your MetaMask to GenLayer Testnet Bradbury to start playing and earning GEN.</p>
                   <button
                     onClick={connectWallet}
                     disabled={isConnecting}
