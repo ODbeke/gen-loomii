@@ -459,7 +459,7 @@ export default function LoomiiApp() {
                       await fundHouse(amount);
                       setTxStatus('confirmed');
                       toast.success(`Funded house with ${amount} GEN`);
-                      fetchContractStats();
+                      syncData();
                     } catch (e: any) {
                       setTxStatus('idle');
                       if (e.code === 'ACTION_REJECTED' || e.message?.includes('user rejected action')) {

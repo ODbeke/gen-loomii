@@ -1,13 +1,10 @@
 import { ethers } from 'ethers';
 import { createClient } from 'genlayer-js';
 import { testnetBradbury } from 'genlayer-js/chains';
+import { TransactionStatus, ExecutionResult } from 'genlayer-js/types';
 
 export const LOOMII_CONTRACT_ADDRESS = "0xfbE9673c4fB05B8F3065277D3Cc628162C71696E";
 export const INITIAL_BALANCE = 1000000;
-
-export const LOOMII_ABI_ETHERS = [
-  "function get_stats() view returns (string)"
-];
 
 export const NETWORK_CONFIG = {
   chainId: '0x107D', // 4221
@@ -18,9 +15,18 @@ export const NETWORK_CONFIG = {
 };
 
 /**
- * Lazily creates a GenLayer client. Called only when a write is needed.
+ * Creates a read-only GenLayer client (no wallet needed).
  */
-async function getGenLayerClient() {
+function getReadClient() {
+  return createClient({
+    chain: testnetBradbury,
+  });
+}
+
+/**
+ * Creates a GenLayer write client using the browser wallet.
+ */
+async function getWriteClient() {
   const ethereum = (window as any).ethereum;
   if (!ethereum) throw new Error("No wallet provider found. Please install MetaMask.");
 
@@ -33,6 +39,7 @@ async function getGenLayerClient() {
   return createClient({
     chain: testnetBradbury,
     account,
+    provider: ethereum,
   });
 }
 
@@ -51,7 +58,8 @@ export const fetchBalance = async (address: string): Promise<string> => {
 };
 
 /**
- * Place a wager via the new contract's `play` function.
+ * Place a wager via the contract's `play` function.
+ * Uses the GenLayer SDK v1.x API with proper receipt handling.
  */
 export const playLoomii = async (
   gameType: number,
@@ -71,46 +79,68 @@ export const playLoomii = async (
   }
 
   try {
-    const client = await getGenLayerClient();
-    const value = ethers.parseUnits(betAmount.toString(), 18);
+    const client = await getWriteClient();
+    const valueWei = ethers.parseUnits(betAmount.toString(), 18);
 
     const hash = await client.writeContract({
       address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
       functionName: 'play',
-      args: [BigInt(gameType ?? 0), playerData],
-      value: value,
-      maxFeePerGas: 0n,
-      maxPriorityFeePerGas: 0n,
+      args: [gameType, playerData],
+      value: BigInt(valueWei.toString()),
     });
 
     console.log("✅ Wager sent via GenLayer play():", hash);
     if (onHash) onHash(hash);
     
-    const receipt = await client.waitForTransactionReceipt({ hash });
-    
+    // Wait for transaction to be ACCEPTED (consensus reached)
+    const receipt = await client.waitForTransactionReceipt({ 
+      hash,
+      status: TransactionStatus.ACCEPTED,
+    });
+
+    console.log("📦 Receipt received:", JSON.stringify(receipt, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2));
+
     let result = { status: 'UNKNOWN', vibe: 'The oracle is silent.' };
     
-    // Attempt to decode the output from the receipt
-    // In GenLayer receipts, the output is typically the return value of the function
-    if (receipt.output) {
+    // Check execution result
+    if (receipt.txExecutionResultName === ExecutionResult.FINISHED_WITH_ERROR) {
+      return { success: false, hash, error: "Contract execution failed on-chain." };
+    }
+
+    // The contract's return value is in receipt.data
+    if (receipt.data) {
       try {
-        let decoded: string;
-        if (typeof receipt.output === 'string') {
-          if (receipt.output.startsWith('0x')) {
-            decoded = ethers.toUtf8String(receipt.output);
-          } else {
-            decoded = receipt.output;
-          }
-        } else {
-          decoded = JSON.stringify(receipt.output);
+        if (typeof receipt.data === 'string') {
+          result = JSON.parse(receipt.data);
+        } else if (typeof receipt.data === 'object') {
+          // If data is already an object, use it directly
+          result = receipt.data as any;
         }
-        
-        // Contract returns a JSON string, so we parse it
-        result = JSON.parse(decoded);
       } catch (e) {
-        console.warn("Could not parse transaction output:", e, receipt.output);
-        // Fallback: If it's a win, the house reserve or total paid would change, 
-        // but we'll stick to a default vibe if parsing fails.
+        console.warn("Could not parse receipt.data:", e, receipt.data);
+      }
+    }
+
+    // If receipt.data didn't have our result, try using debugTraceTransaction
+    if (result.status === 'UNKNOWN') {
+      try {
+        const readClient = getReadClient();
+        const trace = await readClient.debugTraceTransaction({ hash });
+        console.log("🔍 Debug trace return_data:", trace.return_data);
+        if (trace.return_data) {
+          try {
+            // return_data might be hex-encoded
+            let decoded = trace.return_data;
+            if (decoded.startsWith('0x')) {
+              decoded = ethers.toUtf8String(decoded);
+            }
+            result = JSON.parse(decoded);
+          } catch (parseErr) {
+            console.warn("Could not parse trace return_data:", parseErr);
+          }
+        }
+      } catch (traceErr) {
+        console.warn("Debug trace failed:", traceErr);
       }
     }
 
@@ -125,36 +155,45 @@ export const playLoomii = async (
  * Owner (or anyone) funds the house reserve so payouts can be made.
  */
 export const fundHouse = async (amount: string) => {
-  const client = await getGenLayerClient();
-  const value = ethers.parseUnits(amount, 18);
+  const client = await getWriteClient();
+  const valueWei = ethers.parseUnits(amount, 18);
   const hash = await client.writeContract({
     address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
     functionName: 'fund_house',
     args: [],
-    value: value,
-    maxFeePerGas: 0n,
-    maxPriorityFeePerGas: 0n,
+    value: BigInt(valueWei.toString()),
   });
-  await client.waitForTransactionReceipt({ hash });
+  await client.waitForTransactionReceipt({ 
+    hash,
+    status: TransactionStatus.ACCEPTED,
+  });
   return hash;
 };
 
 /**
- * Read-only stats fetch via ethers.js JsonRpcProvider.
+ * Read-only stats fetch using the GenLayer SDK readContract.
  */
 export const fetchStats = async () => {
   try {
-    const provider = new ethers.JsonRpcProvider(NETWORK_CONFIG.rpcUrls[0]);
-    const contract = new ethers.Contract(LOOMII_CONTRACT_ADDRESS, LOOMII_ABI_ETHERS, provider);
-    const statsResult = await contract.get_stats();
-    const statsStr = typeof statsResult === 'string' && statsResult.startsWith('0x')
-      ? ethers.toUtf8String(statsResult) : statsResult;
-    const stats = JSON.parse(statsStr);
+    const client = getReadClient();
+    const statsResult = await client.readContract({
+      address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
+      functionName: 'get_stats',
+      args: [],
+    });
+
+    let stats: any;
+    if (typeof statsResult === 'string') {
+      stats = JSON.parse(statsResult);
+    } else {
+      stats = statsResult;
+    }
+
     return {
-      totalWagered: ethers.formatEther(stats.total_wagered.toString()),
-      totalPaid: ethers.formatEther(stats.total_paid.toString()),
-      houseReserve: ethers.formatEther(stats.house_reserve.toString()),
-      owner: stats.owner.toLowerCase()
+      totalWagered: ethers.formatEther((stats.total_wagered ?? 0).toString()),
+      totalPaid: ethers.formatEther((stats.total_paid ?? 0).toString()),
+      houseReserve: ethers.formatEther((stats.house_reserve ?? 0).toString()),
+      owner: (stats.owner ?? "0x0000000000000000000000000000000000000000").toLowerCase()
     };
   } catch (error) {
     console.error("Error fetching stats:", error);
