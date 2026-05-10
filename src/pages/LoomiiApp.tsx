@@ -33,14 +33,19 @@ export default function LoomiiApp() {
   const [currentTxHash, setCurrentTxHash] = useState<string | null>(null);
   const [payoutTxHash, setPayoutTxHash] = useState<string | null>(null);
   const [contractStats, setContractStats] = useState<any>(null);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const syncData = useCallback(async () => {
-    const stats = await fetchStats();
-    setContractStats(stats);
-    
-    if (account) {
-      const b = await fetchBalance(account);
-      setBalance(Number(b));
+    try {
+      const stats = await fetchStats();
+      if (stats) setContractStats(stats);
+      
+      if (account) {
+        const b = await fetchBalance(account);
+        if (b) setBalance(Number(b));
+      }
+    } catch (e) {
+      console.warn("Loomii Sync Error:", e);
     }
   }, [account]);
 

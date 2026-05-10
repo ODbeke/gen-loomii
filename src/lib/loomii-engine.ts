@@ -26,7 +26,7 @@ const bradbury = {
     public: { http: ['https://rpc.testnet-chain.genlayer.com'] },
   },
   blockExplorers: {
-    default: { name: 'GenLayer Explorer', url: 'https://explorer.testnet.genlayer.com' },
+    default: { name: 'Explorer', url: 'https://explorer.testnet.genlayer.com' },
   },
 };
 
