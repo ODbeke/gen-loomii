@@ -90,8 +90,8 @@ export const playLoomii = async (
     const hash = await client.writeContract({
       address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
       functionName: 'play',
-      args: [BigInt(gameType), playerData],
-      value: BigInt(value.toString()),
+      args: [BigInt(gameType ?? 0), playerData],
+      value: value,
       maxFeePerGas: 0n,
       maxPriorityFeePerGas: 0n,
     });
@@ -144,7 +144,7 @@ export const fundHouse = async (amount: string) => {
     address: LOOMII_CONTRACT_ADDRESS as `0x${string}`,
     functionName: 'fund_house',
     args: [],
-    value: BigInt(value.toString()),
+    value: value,
     maxFeePerGas: 0n,
     maxPriorityFeePerGas: 0n,
   });
