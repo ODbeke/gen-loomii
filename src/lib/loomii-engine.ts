@@ -37,9 +37,21 @@ async function getGenLayerClient() {
 }
 
 /**
+ * Fetch the native GEN balance of an account.
+ */
+export const fetchBalance = async (address: string): Promise<string> => {
+  try {
+    const provider = new ethers.JsonRpcProvider(NETWORK_CONFIG.rpcUrls[0]);
+    const balance = await provider.getBalance(address);
+    return ethers.formatEther(balance);
+  } catch (error) {
+    console.error("Error fetching balance:", error);
+    return "0.0";
+  }
+};
+
+/**
  * Place a wager via the new contract's `play` function.
- * The bet amount is sent as native GEN value, and the contract resolves
- * the outcome via the GenLayer Equivalence Principle (strict_eq).
  */
 export const playLoomii = async (
   gameType: number,
@@ -76,19 +88,30 @@ export const playLoomii = async (
     
     const receipt = await client.waitForTransactionReceipt({ hash });
     
-    // In GenLayer, the return value is often in the receipt's result field
-    // or can be fetched via getTransactionReceipt
     let result = { status: 'UNKNOWN', vibe: 'The oracle is silent.' };
-    try {
-      if (receipt.output) {
-        // If the SDK provides output directly
-        const decoded = typeof receipt.output === 'string' && receipt.output.startsWith('0x')
-          ? ethers.toUtf8String(receipt.output)
-          : receipt.output;
+    
+    // Attempt to decode the output from the receipt
+    // In GenLayer receipts, the output is typically the return value of the function
+    if (receipt.output) {
+      try {
+        let decoded: string;
+        if (typeof receipt.output === 'string') {
+          if (receipt.output.startsWith('0x')) {
+            decoded = ethers.toUtf8String(receipt.output);
+          } else {
+            decoded = receipt.output;
+          }
+        } else {
+          decoded = JSON.stringify(receipt.output);
+        }
+        
+        // Contract returns a JSON string, so we parse it
         result = JSON.parse(decoded);
+      } catch (e) {
+        console.warn("Could not parse transaction output:", e, receipt.output);
+        // Fallback: If it's a win, the house reserve or total paid would change, 
+        // but we'll stick to a default vibe if parsing fails.
       }
-    } catch (e) {
-      console.warn("Could not parse transaction output:", e);
     }
 
     return { success: true, hash, result };
@@ -133,7 +156,8 @@ export const fetchStats = async () => {
       houseReserve: ethers.formatEther(stats.house_reserve.toString()),
       owner: stats.owner.toLowerCase()
     };
-  } catch {
+  } catch (error) {
+    console.error("Error fetching stats:", error);
     return {
       totalWagered: "0.0", totalPaid: "0.0", houseReserve: "0.0",
       owner: "0x0000000000000000000000000000000000000000"

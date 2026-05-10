@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import type { GameType, GameResult, TxStatus } from '@/lib/loomii-types';
 import {
   LOOMII_CONTRACT_ADDRESS, NETWORK_CONFIG,
-  INITIAL_BALANCE, fetchStats, fundHouse
+  INITIAL_BALANCE, fetchStats, fundHouse, fetchBalance
 } from '@/lib/loomii-engine';
 import { GameCard } from '@/components/loomii/GameCard';
 import { AccountDropdown } from '@/components/loomii/AccountDropdown';
@@ -33,18 +33,22 @@ export default function LoomiiApp() {
   const [currentTxHash, setCurrentTxHash] = useState<string | null>(null);
   const [payoutTxHash, setPayoutTxHash] = useState<string | null>(null);
   const [contractStats, setContractStats] = useState<any>(null);
-  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const fetchContractStats = async () => {
+  
+  const syncData = useCallback(async () => {
     const stats = await fetchStats();
     setContractStats(stats);
-  };
+    
+    if (account) {
+      const b = await fetchBalance(account);
+      setBalance(Number(b));
+    }
+  }, [account]);
 
   useEffect(() => {
-    fetchContractStats();
-    const interval = setInterval(fetchContractStats, 30000);
+    syncData();
+    const interval = setInterval(syncData, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [syncData]);
 
   useEffect(() => {
     if (txStatus === 'confirmed') {
@@ -141,7 +145,7 @@ export default function LoomiiApp() {
     balance, setBalance, account, addHistory,
     setTxStatus, currentTxHash, setCurrentTxHash, setPayoutTxHash,
     setError: (msg: string | null) => { if (msg) toast.error(msg, { duration: 5000 }); },
-    refreshStats: fetchContractStats,
+    refreshStats: syncData,
   };
 
   return (
@@ -474,8 +478,24 @@ export default function LoomiiApp() {
       )}
 
       {/* Footer */}
-      <footer className="py-12 border-t border-border text-center text-muted-foreground/30 text-xs uppercase tracking-[0.2em]">
-        Loomii &copy; 2026 &bull; Powered by GenLayer Intelligent Contracts
+      <footer className="py-12 border-t border-border text-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="text-muted-foreground/30 text-xs uppercase tracking-[0.2em]">
+            Loomii &copy; 2026 &bull; Powered by GenLayer Intelligent Contracts
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1 bg-secondary/50 rounded-full border border-border/50">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">Contract:</span>
+            <code className="text-[10px] font-mono text-primary/50">{LOOMII_CONTRACT_ADDRESS}</code>
+            <a 
+              href={`${NETWORK_CONFIG.blockExplorerUrls[0]}address/${LOOMII_CONTRACT_ADDRESS}`}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-primary transition-colors"
+            >
+              <ExternalLink className="w-2.5 h-2.5 opacity-30 hover:opacity-100" />
+            </a>
+          </div>
+        </div>
       </footer>
     </div>
   );
