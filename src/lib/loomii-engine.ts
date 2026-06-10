@@ -35,6 +35,64 @@ type LoomiiStats = {
   owner?: string;
 };
 
+const parseLoomiiResult = (value: unknown): LoomiiContractResult | null => {
+  if (!value) return null;
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parseLoomiiResult(parsed);
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value !== 'object') return null;
+
+  const record = value as Record<string, unknown>;
+  if (record.status === 'WIN' || record.status === 'LOSS' || record.status === 'ERROR') {
+    return record as LoomiiContractResult;
+  }
+
+  return null;
+};
+
+const parseReadableResult = (readable: unknown): LoomiiContractResult | null => {
+  if (typeof readable !== 'string') return null;
+
+  try {
+    const parsed = JSON.parse(readable);
+    if (typeof parsed === 'string') return parseLoomiiResult(parsed);
+    return parseLoomiiResult(parsed);
+  } catch {
+    return null;
+  }
+};
+
+export const extractStudioReceiptResult = (receipt: unknown): LoomiiContractResult | null => {
+  if (!receipt || typeof receipt !== 'object') return null;
+  const record = receipt as Record<string, unknown>;
+  const consensusData = record.consensus_data;
+  if (!consensusData || typeof consensusData !== 'object') return null;
+
+  const leaderReceipt = (consensusData as Record<string, unknown>).leader_receipt;
+  if (!Array.isArray(leaderReceipt)) return null;
+
+  for (const item of leaderReceipt) {
+    if (!item || typeof item !== 'object') continue;
+    const result = (item as Record<string, unknown>).result;
+    if (!result || typeof result !== 'object') continue;
+
+    const payload = (result as Record<string, unknown>).payload;
+    if (!payload || typeof payload !== 'object') continue;
+
+    const parsed = parseReadableResult((payload as Record<string, unknown>).readable);
+    if (parsed) return parsed;
+  }
+
+  return null;
+};
+
 const getEthereumProvider = (): EthereumProvider | null => {
   const candidate = (window as Window & { ethereum?: EthereumProvider }).ethereum;
   return candidate ?? null;
@@ -134,14 +192,17 @@ export const playLoomii = async (
       return { success: false, hash, error: "Contract execution failed on-chain." };
     }
 
-    // The contract's return value is in receipt.data
-    if (receipt.data) {
+    const studioResult = extractStudioReceiptResult(receipt);
+    if (studioResult) {
+      result = studioResult;
+    }
+
+    // On non-Studio receipts the contract's return value can be in receipt.data.
+    if (result.status === 'UNKNOWN' && receipt.data) {
       try {
-        if (typeof receipt.data === 'string') {
-          result = JSON.parse(receipt.data);
-        } else if (typeof receipt.data === 'object') {
-          // If data is already an object, use it directly
-          result = receipt.data as LoomiiContractResult;
+        const parsed = parseLoomiiResult(receipt.data);
+        if (parsed) {
+          result = parsed;
         }
       } catch (e) {
         console.warn("Could not parse receipt.data:", e, receipt.data);
