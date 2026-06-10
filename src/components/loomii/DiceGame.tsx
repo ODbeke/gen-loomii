@@ -1,9 +1,14 @@
 import { useState } from 'react';
-import { Dice5, RefreshCw, ShieldCheck, Plus, Minus } from 'lucide-react';
+import { Dice5, RefreshCw, Plus, Minus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { GameProps } from '@/lib/loomii-types';
 import { playLoomii } from '@/lib/loomii-engine';
 import { isRejectedTransaction } from '@/lib/errors';
+
+const parseDiceRoll = (outcome: string | undefined): number | null => {
+  const roll = outcome?.match(/(?:^|;)roll=(\d+)(?:;|$)/)?.[1];
+  return roll ? Number(roll) : null;
+};
 
 export function DiceGame({ account, addHistory, setTxStatus, setCurrentTxHash, setError, refreshStats }: GameProps) {
   const [bet, setBet] = useState(10);
@@ -11,6 +16,7 @@ export function DiceGame({ account, addHistory, setTxStatus, setCurrentTxHash, s
   const [isOver, setIsOver] = useState(true);
   const [isRolling, setIsRolling] = useState(false);
   const [vibe, setVibe] = useState<string | null>(null);
+  const [rollResult, setRollResult] = useState<number | null>(null);
 
   const play = async () => {
     if (!account || !account.startsWith('0x')) {
@@ -20,6 +26,7 @@ export function DiceGame({ account, addHistory, setTxStatus, setCurrentTxHash, s
 
     setIsRolling(true);
     setVibe(null);
+    setRollResult(null);
     setTxStatus('staking');
 
     try {
@@ -41,16 +48,18 @@ export function DiceGame({ account, addHistory, setTxStatus, setCurrentTxHash, s
       const result = txResult.result;
       const isWin = result?.status === 'WIN';
       const resultVibe = result?.vibe || "The oracle has spoken.";
+      const roll = parseDiceRoll(result?.outcome);
       
       setCurrentTxHash(txHash);
       setTxStatus('confirmed');
       setVibe(resultVibe);
+      setRollResult(roll);
 
       addHistory({
         type: 'dice', 
         outcome: isWin ? 'win' : 'loss', 
         amount: bet,
-        message: `${isWin ? 'WON' : 'LOST'} on ${isOver ? 'Over' : 'Under'} ${target}`,
+        message: `${isWin ? 'WON' : 'LOST'} ${roll ? `with roll ${roll}` : ''} on ${isOver ? 'Over' : 'Under'} ${target}`,
         vibe: resultVibe, 
         timestamp: Date.now(), 
         txHash, 
@@ -143,11 +152,6 @@ export function DiceGame({ account, addHistory, setTxStatus, setCurrentTxHash, s
         </div>
 
         <div className="flex flex-col items-center justify-center bg-background rounded-2xl border border-border p-12 relative overflow-hidden">
-          <div className="absolute top-4 left-4 flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground/50">
-            <ShieldCheck className="w-3 h-3" />
-            Equivalence Principle Active
-          </div>
-
           <AnimatePresence mode="wait">
             {isRolling ? (
               <motion.div key="rolling" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }} className="text-center">
@@ -163,7 +167,9 @@ export function DiceGame({ account, addHistory, setTxStatus, setCurrentTxHash, s
               </motion.div>
             ) : vibe ? (
               <motion.div key="result" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
-                <Dice5 className="w-16 h-16 mb-4 mx-auto text-primary" />
+                <div className="w-24 h-24 mb-5 mx-auto rounded-2xl border-4 border-primary flex items-center justify-center text-5xl font-black font-mono text-primary shadow-[0_0_30px_hsla(25,89%,55%,0.25)]">
+                  {rollResult ?? <Dice5 className="w-12 h-12" />}
+                </div>
                 <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Wager Submitted</div>
                 <div className="max-w-[280px] mx-auto">
                   <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Block Vibe</div>
