@@ -1,4 +1,4 @@
-# v0.3.0
+# v0.3.1
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 
 import hashlib
@@ -31,10 +31,6 @@ class LoomiiAI(gl.Contract):
     @gl.public.write.payable
     def fund_house(self) -> None:
         # Allows the owner (or anyone) to fund the house to cover payouts
-        self.house_reserve += gl.message.value
-
-    @gl.public.write.payable
-    def __receive__(self) -> None:
         self.house_reserve += gl.message.value
 
     def _load_player_data(self, player_data: str) -> dict[str, typing.Any]:
