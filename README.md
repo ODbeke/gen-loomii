@@ -58,8 +58,8 @@ _____
 ## 📜 Smart Contract 
 
 The core logic resides in a GenLayer Intelligent Contract:
-- `wager(game_type, data)`: Accepts wagers in **GEN** tokens.
-- `resolve_game(player_address, game_type, bet_amount, player_data)`: The AI-driven resolution engine that uses the Equivalence Principle to determine winners.
+- `play(game_type, player_data)`: Accepts payable **GEN** wagers and resolves the outcome atomically on-chain.
+- `fund_house()`: Lets the house reserve receive **GEN** for payouts.
 - `get_stats()`: Returns real-time contract metrics.
 
 
@@ -123,7 +123,7 @@ Open the .env file and paste the following configuration:
 ```bash
 RPC_URL="https://studio.genlayer.com/api"
 CHAIN_ID=61999
-CONTRACT_ADDRESS="0x33f2DAef61d792D1cFA2fE9635A873387e768775"
+CONTRACT_ADDRESS="0xf5Af16B2f1628b102154462Ff38c6da272DEc20c"
 PRIVATE_KEY="your_actual_private_key_here"
 ```
 
