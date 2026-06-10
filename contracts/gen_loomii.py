@@ -6,6 +6,14 @@ import json
 import typing
 from genlayer import *
 
+@gl.evm.contract_interface
+class _Recipient:
+    class View:
+        pass
+
+    class Write:
+        pass
+
 class LoomiiAI(gl.Contract):
     owner: Address
     total_wagered: u256
@@ -23,6 +31,10 @@ class LoomiiAI(gl.Contract):
     @gl.public.write.payable
     def fund_house(self) -> None:
         # Allows the owner (or anyone) to fund the house to cover payouts
+        self.house_reserve += gl.message.value
+
+    @gl.public.write.payable
+    def __receive__(self) -> None:
         self.house_reserve += gl.message.value
 
     def _load_player_data(self, player_data: str) -> dict[str, typing.Any]:
@@ -171,7 +183,7 @@ class LoomiiAI(gl.Contract):
             payout_amt: u256 = amount * u256(2)
             assert self.house_reserve >= payout_amt, "Insufficient house reserve"
 
-            gl.transfer(gl.message.sender_address, payout_amt)
+            _Recipient(gl.message.sender_address).emit_transfer(value=payout_amt)
             self.total_paid += payout_amt
             self.house_reserve -= payout_amt
 
