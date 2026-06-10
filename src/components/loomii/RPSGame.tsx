@@ -5,6 +5,8 @@ import type { GameProps } from '@/lib/loomii-types';
 import { playLoomii } from '@/lib/loomii-engine';
 import { isRejectedTransaction } from '@/lib/errors';
 
+type RpsMove = 'rock' | 'paper' | 'scissors';
+
 function MoveIcon({ move, className }: { move: string; className?: string }) {
   if (move === 'rock') return <div className={`text-2xl ${className}`}>🪨</div>;
   if (move === 'paper') return <div className={`text-2xl ${className}`}>📄</div>;
@@ -12,12 +14,24 @@ function MoveIcon({ move, className }: { move: string; className?: string }) {
   return null;
 }
 
+const parseRpsOutcome = (outcome: string | undefined, fallbackPlayer: RpsMove) => {
+  const player = outcome?.match(/(?:^|;)player=(rock|paper|scissors)(?:;|$)/)?.[1] as RpsMove | undefined;
+  const oracle = outcome?.match(/(?:^|;)oracle=(rock|paper|scissors)(?:;|$)/)?.[1] as RpsMove | undefined;
+
+  return {
+    playerMove: player ?? fallbackPlayer,
+    oracleMove: oracle ?? null,
+  };
+};
+
 export function RPSGame({ account, addHistory, setTxStatus, setCurrentTxHash, setError, refreshStats }: GameProps) {
   const [bet, setBet] = useState(10);
   const [isFighting, setIsFighting] = useState(false);
-  const [userMove, setUserMove] = useState<string | null>(null);
+  const [userMove, setUserMove] = useState<RpsMove | null>(null);
+  const [oracleMove, setOracleMove] = useState<RpsMove | null>(null);
+  const [roundResult, setRoundResult] = useState<{ isWin: boolean; vibe: string } | null>(null);
 
-  const play = async (move: string) => {
+  const play = async (move: RpsMove) => {
     if (!account || !account.startsWith('0x')) {
       setError("Connect your wallet first");
       return;
@@ -25,6 +39,8 @@ export function RPSGame({ account, addHistory, setTxStatus, setCurrentTxHash, se
 
     setIsFighting(true);
     setUserMove(null);
+    setOracleMove(null);
+    setRoundResult(null);
     setTxStatus('staking');
 
     try {
@@ -46,16 +62,19 @@ export function RPSGame({ account, addHistory, setTxStatus, setCurrentTxHash, se
       const result = txResult.result;
       const isWin = result?.status === 'WIN';
       const resultVibe = result?.vibe || "The duel is settled.";
+      const parsedOutcome = parseRpsOutcome(result?.outcome, move);
 
       setCurrentTxHash(txHash);
       setTxStatus('confirmed');
-      setUserMove(move);
+      setUserMove(parsedOutcome.playerMove);
+      setOracleMove(parsedOutcome.oracleMove);
+      setRoundResult({ isWin, vibe: resultVibe });
 
       addHistory({
         type: 'rps', 
         outcome: isWin ? 'win' : 'loss', 
         amount: bet,
-        message: `${isWin ? 'VICTORY' : 'DEFEAT'} with ${move.toUpperCase()}`,
+        message: `${isWin ? 'VICTORY' : 'DEFEAT'}: ${parsedOutcome.playerMove.toUpperCase()} vs ${(parsedOutcome.oracleMove ?? 'oracle').toUpperCase()}`,
         vibe: resultVibe,
         timestamp: Date.now(), 
         txHash, 
@@ -89,14 +108,14 @@ export function RPSGame({ account, addHistory, setTxStatus, setCurrentTxHash, se
           <div className="text-center">
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-4">GenVM Oracle</div>
             <div className="w-32 h-32 bg-secondary rounded-2xl flex items-center justify-center border border-border">
-              <div className="text-xs text-muted-foreground italic">on-chain</div>
+              {oracleMove ? <MoveIcon move={oracleMove} /> : <div className="text-xs text-muted-foreground italic">on-chain</div>}
             </div>
           </div>
         </div>
 
         <div className="w-full max-w-md space-y-8">
           <div className="flex justify-center gap-4">
-            {['rock', 'paper', 'scissors'].map(move => (
+            {(['rock', 'paper', 'scissors'] as RpsMove[]).map(move => (
               <button
                 key={move}
                 onClick={() => play(move)}
@@ -125,12 +144,18 @@ export function RPSGame({ account, addHistory, setTxStatus, setCurrentTxHash, se
           </div>
         </div>
 
-        {userMove && !isFighting && (
+        {roundResult && !isFighting && (
           <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="text-sm text-muted-foreground italic text-center max-w-sm"
+            className={`text-sm italic text-center max-w-sm ${roundResult.isWin ? 'text-green-500' : 'text-red-500'}`}
           >
-            Wager submitted. The GenVM oracle is choosing the AI's move and resolving the round on-chain. Check the explorer for the consensus result.
+            <div className="font-bold uppercase tracking-widest mb-2">
+              {roundResult.isWin ? 'Victory' : 'Defeat'}
+            </div>
+            <div className="text-muted-foreground">
+              {userMove?.toUpperCase()} vs {oracleMove?.toUpperCase() ?? 'ORACLE'}
+            </div>
+            <div className="mt-2 text-muted-foreground/80">{roundResult.vibe}</div>
           </motion.div>
         )}
       </div>
