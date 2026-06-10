@@ -4,7 +4,7 @@ import { studionet } from 'genlayer-js/chains';
 import { TransactionStatus, ExecutionResult } from 'genlayer-js/types';
 import { getErrorMessage } from './errors';
 
-export const LOOMII_CONTRACT_ADDRESS = "0xf5Af16B2f1628b102154462Ff38c6da272DEc20c";
+export const LOOMII_CONTRACT_ADDRESS = "0x6f75F56eA4Cc17979Df41f5b4b48b98Acb8e6262";
 export const INITIAL_BALANCE = 1000000;
 
 export const NETWORK_CONFIG = {

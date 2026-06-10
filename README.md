@@ -123,7 +123,7 @@ Open the .env file and paste the following configuration:
 ```bash
 RPC_URL="https://studio.genlayer.com/api"
 CHAIN_ID=61999
-CONTRACT_ADDRESS="0xf5Af16B2f1628b102154462Ff38c6da272DEc20c"
+CONTRACT_ADDRESS="0x6f75F56eA4Cc17979Df41f5b4b48b98Acb8e6262"
 PRIVATE_KEY="your_actual_private_key_here"
 ```
 
