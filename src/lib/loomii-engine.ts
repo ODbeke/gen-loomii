@@ -3,6 +3,7 @@ import { createClient } from 'genlayer-js';
 import { studionet } from 'genlayer-js/chains';
 import { TransactionStatus, ExecutionResult } from 'genlayer-js/types';
 import { getErrorMessage } from './errors';
+import type { LoomiiContractResult } from './loomii-types';
 
 export const LOOMII_CONTRACT_ADDRESS = "0x6f75F56eA4Cc17979Df41f5b4b48b98Acb8e6262";
 export const INITIAL_BALANCE = 1000000;
@@ -17,15 +18,6 @@ export const NETWORK_CONFIG = {
 
 type EthereumProvider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-};
-
-type LoomiiContractResult = {
-  status: 'WIN' | 'LOSS' | 'ERROR' | 'UNKNOWN';
-  win?: boolean;
-  outcome?: string;
-  vibe?: string;
-  round_id?: number;
-  message?: string;
 };
 
 type LoomiiStats = {

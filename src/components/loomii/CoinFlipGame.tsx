@@ -5,6 +5,12 @@ import type { GameProps } from '@/lib/loomii-types';
 import { playLoomii } from '@/lib/loomii-engine';
 import { isRejectedTransaction } from '@/lib/errors';
 
+const getLandedSide = (outcome: string | undefined, fallback: 'heads' | 'tails'): 'heads' | 'tails' => {
+  if (!outcome) return fallback;
+  const landed = outcome.match(/(?:^|;)landed=(heads|tails)(?:;|$)/)?.[1];
+  return landed === 'heads' || landed === 'tails' ? landed : fallback;
+};
+
 export function CoinFlipGame({ account, addHistory, setTxStatus, setCurrentTxHash, setError, refreshStats }: GameProps) {
   const [bet, setBet] = useState(10);
   const [isFlipping, setIsFlipping] = useState(false);
@@ -39,16 +45,17 @@ export function CoinFlipGame({ account, addHistory, setTxStatus, setCurrentTxHas
       const result = txResult.result;
       const isWin = result?.status === 'WIN';
       const resultVibe = result?.vibe || "The coin has landed.";
+      const landedSide = getLandedSide(result?.outcome, choice);
 
       setCurrentTxHash(txHash);
       setTxStatus('confirmed');
-      setSide(choice);
+      setSide(landedSide);
 
       addHistory({
         type: 'coin', 
         outcome: isWin ? 'win' : 'loss', 
         amount: bet,
-        message: `${isWin ? 'WON' : 'LOST'} calling ${choice.toUpperCase()}`,
+        message: `${isWin ? 'WON' : 'LOST'} calling ${choice.toUpperCase()} - landed ${landedSide.toUpperCase()}`,
         vibe: resultVibe,
         timestamp: Date.now(), 
         txHash, 

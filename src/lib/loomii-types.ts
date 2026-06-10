@@ -12,6 +12,15 @@ export interface GameResult {
   isPending?: boolean;
 }
 
+export interface LoomiiContractResult {
+  status: 'WIN' | 'LOSS' | 'ERROR' | 'UNKNOWN';
+  win?: boolean;
+  outcome?: string;
+  vibe?: string;
+  round_id?: number;
+  message?: string;
+}
+
 export type TxStatus = 'idle' | 'staking' | 'processing' | 'payout' | 'confirmed';
 
 export interface GameProps {
