@@ -1,17 +1,42 @@
 import { ethers } from 'ethers';
 import { createClient } from 'genlayer-js';
-import { testnetBradbury } from 'genlayer-js/chains';
+import { studionet } from 'genlayer-js/chains';
 import { TransactionStatus, ExecutionResult } from 'genlayer-js/types';
 
-export const LOOMII_CONTRACT_ADDRESS = "0xfbE9673c4fB05B8F3065277D3Cc628162C71696E";
+export const LOOMII_CONTRACT_ADDRESS = "0xf5Af16B2f1628b102154462Ff38c6da272DEc20c";
 export const INITIAL_BALANCE = 1000000;
 
 export const NETWORK_CONFIG = {
-  chainId: '0x107D', // 4221
-  chainName: 'GenLayer Testnet Bradbury',
-  nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 },
-  rpcUrls: ['https://rpc.testnet-chain.genlayer.com'],
-  blockExplorerUrls: ['https://explorer.testnet.genlayer.com/'],
+  chainId: '0xF22F', // 61999
+  chainName: 'GenLayer Studio Network',
+  nativeCurrency: { name: 'GEN Token', symbol: 'GEN', decimals: 18 },
+  rpcUrls: ['https://studio.genlayer.com/api'],
+  blockExplorerUrls: ['https://genlayer-explorer.vercel.app/'],
+};
+
+type EthereumProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+};
+
+type LoomiiContractResult = {
+  status: 'WIN' | 'LOSS' | 'ERROR' | 'UNKNOWN';
+  win?: boolean;
+  outcome?: string;
+  vibe?: string;
+  round_id?: number;
+  message?: string;
+};
+
+type LoomiiStats = {
+  total_wagered?: string | number | bigint;
+  total_paid?: string | number | bigint;
+  house_reserve?: string | number | bigint;
+  owner?: string;
+};
+
+const getEthereumProvider = (): EthereumProvider | null => {
+  const candidate = (window as Window & { ethereum?: EthereumProvider }).ethereum;
+  return candidate ?? null;
 };
 
 /**
@@ -19,7 +44,7 @@ export const NETWORK_CONFIG = {
  */
 function getReadClient() {
   return createClient({
-    chain: testnetBradbury,
+    chain: studionet,
   });
 }
 
@@ -27,20 +52,22 @@ function getReadClient() {
  * Creates a GenLayer write client using the browser wallet.
  */
 async function getWriteClient() {
-  const ethereum = (window as any).ethereum;
+  const ethereum = getEthereumProvider();
   if (!ethereum) throw new Error("No wallet provider found. Please install MetaMask.");
 
-  const accounts: string[] = await ethereum.request({ method: 'eth_accounts' });
+  const accounts = await ethereum.request({ method: 'eth_accounts' }) as string[];
   if (!accounts || accounts.length === 0) {
     throw new Error("No account connected. Please connect your wallet first.");
   }
   const account = accounts[0] as `0x${string}`;
 
-  return createClient({
-    chain: testnetBradbury,
+  const client = createClient({
+    chain: studionet,
     account,
     provider: ethereum,
   });
+  await client.connect("studionet");
+  return client;
 }
 
 /**
@@ -100,7 +127,7 @@ export const playLoomii = async (
 
     console.log("📦 Receipt received:", JSON.stringify(receipt, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2));
 
-    let result = { status: 'UNKNOWN', vibe: 'The oracle is silent.' };
+    let result: LoomiiContractResult = { status: 'UNKNOWN', vibe: 'The oracle is silent.' };
     
     // Check execution result
     if (receipt.txExecutionResultName === ExecutionResult.FINISHED_WITH_ERROR) {
@@ -114,7 +141,7 @@ export const playLoomii = async (
           result = JSON.parse(receipt.data);
         } else if (typeof receipt.data === 'object') {
           // If data is already an object, use it directly
-          result = receipt.data as any;
+          result = receipt.data as LoomiiContractResult;
         }
       } catch (e) {
         console.warn("Could not parse receipt.data:", e, receipt.data);
@@ -145,9 +172,10 @@ export const playLoomii = async (
     }
 
     return { success: true, hash, result };
-  } catch (error: any) {
-    console.error("❌ Loomii Engine Error:", error.message);
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("❌ Loomii Engine Error:", message);
+    return { success: false, error: message };
   }
 };
 
@@ -182,11 +210,11 @@ export const fetchStats = async () => {
       args: [],
     });
 
-    let stats: any;
+    let stats: LoomiiStats;
     if (typeof statsResult === 'string') {
       stats = JSON.parse(statsResult);
     } else {
-      stats = statsResult;
+      stats = statsResult as LoomiiStats;
     }
 
     return {

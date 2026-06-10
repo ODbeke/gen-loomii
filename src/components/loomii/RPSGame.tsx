@@ -3,6 +3,7 @@ import { Plus, Minus } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { GameProps } from '@/lib/loomii-types';
 import { playLoomii } from '@/lib/loomii-engine';
+import { isRejectedTransaction } from '@/lib/errors';
 
 function MoveIcon({ move, className }: { move: string; className?: string }) {
   if (move === 'rock') return <div className={`text-2xl ${className}`}>🪨</div>;
@@ -62,8 +63,8 @@ export function RPSGame({ account, addHistory, setTxStatus, setCurrentTxHash, se
       });
 
       refreshStats();
-    } catch (e: any) {
-      if (e.code === 'ACTION_REJECTED' || e.message?.includes('user rejected action')) {
+    } catch (e: unknown) {
+      if (isRejectedTransaction(e)) {
         setError("Transaction cancelled by user.");
       } else {
         setError("An unexpected error occurred during the duel.");

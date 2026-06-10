@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Bomb, RefreshCw, ShieldCheck, Plus, Minus } from 'lucide-react';
 import type { GameProps } from '@/lib/loomii-types';
 import { playLoomii } from '@/lib/loomii-engine';
+import { isRejectedTransaction } from '@/lib/errors';
 
 export function MinesGame({ account, addHistory, setTxStatus, setCurrentTxHash, setError, refreshStats }: GameProps) {
   const [bet, setBet] = useState(10);
@@ -63,8 +64,8 @@ export function MinesGame({ account, addHistory, setTxStatus, setCurrentTxHash, 
       });
 
       refreshStats();
-    } catch (e: any) {
-      if (e.code === 'ACTION_REJECTED' || e.message?.includes('user rejected action')) {
+    } catch (e: unknown) {
+      if (isRejectedTransaction(e)) {
         setError("Transaction cancelled by user.");
       } else {
         setError("An unexpected error occurred while submitting.");

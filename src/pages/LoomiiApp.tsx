@@ -9,6 +9,7 @@ import { ethers } from 'ethers';
 import { toast } from 'sonner';
 
 import type { GameType, GameResult, TxStatus } from '@/lib/loomii-types';
+import { getErrorMessage, isRejectedTransaction } from '@/lib/errors';
 import {
   LOOMII_CONTRACT_ADDRESS, NETWORK_CONFIG,
   INITIAL_BALANCE, fetchStats, fundHouse, fetchBalance
@@ -21,6 +22,26 @@ import { RPSGame } from '@/components/loomii/RPSGame';
 import { CoinFlipGame } from '@/components/loomii/CoinFlipGame';
 import { MinesGame } from '@/components/loomii/MinesGame';
 
+type EthereumProvider = ethers.Eip1193Provider & {
+  on?: (event: 'accountsChanged' | 'chainChanged', listener: (...args: unknown[]) => void) => void;
+  removeListener?: (event: 'accountsChanged' | 'chainChanged', listener: (...args: unknown[]) => void) => void;
+};
+
+type EthereumWindow = Window & { ethereum?: EthereumProvider };
+
+type StoredHistoryItem = GameResult & {
+  player?: string;
+};
+
+type ContractStats = {
+  totalWagered: string;
+  totalPaid: string;
+  houseReserve: string;
+  owner: string;
+};
+
+const getEthereum = (): EthereumProvider | undefined => (window as EthereumWindow).ethereum;
+
 export default function LoomiiApp() {
   const [balance, setBalance] = useState(INITIAL_BALANCE);
   const [account, setAccount] = useState<string | null>(null);
@@ -32,7 +53,7 @@ export default function LoomiiApp() {
   const [txStatus, setTxStatus] = useState<TxStatus>('idle');
   const [currentTxHash, setCurrentTxHash] = useState<string | null>(null);
   const [payoutTxHash, setPayoutTxHash] = useState<string | null>(null);
-  const [contractStats, setContractStats] = useState<any>(null);
+  const [contractStats, setContractStats] = useState<ContractStats | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const syncData = useCallback(async () => {
@@ -64,16 +85,27 @@ export default function LoomiiApp() {
   }, [txStatus]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).ethereum) {
-      const eth = (window as any).ethereum;
-      eth.on('accountsChanged', (accounts: string[]) => {
+    if (typeof window !== 'undefined') {
+      const eth = getEthereum();
+      if (!eth?.on) return;
+
+      const handleAccountsChanged = (...args: unknown[]) => {
+        const accounts = args[0] as string[];
         if (!accounts?.length || accounts[0] === 'undefined' || typeof accounts[0] !== 'string') {
           setAccount(null); setBalance(0);
         } else {
           try { setAccount(ethers.getAddress(accounts[0])); } catch { setAccount(null); }
         }
-      });
-      eth.on('chainChanged', () => window.location.reload());
+      };
+      const handleChainChanged = () => window.location.reload();
+
+      eth.on('accountsChanged', handleAccountsChanged);
+      eth.on('chainChanged', handleChainChanged);
+
+      return () => {
+        eth.removeListener?.('accountsChanged', handleAccountsChanged);
+        eth.removeListener?.('chainChanged', handleChainChanged);
+      };
     }
   }, []);
 
@@ -81,7 +113,7 @@ export default function LoomiiApp() {
     const savedHistory = localStorage.getItem('loomii_history');
     if (savedHistory) {
       const parsed = JSON.parse(savedHistory);
-      const cleaned = Array.isArray(parsed) ? parsed.filter((item: any) =>
+      const cleaned = Array.isArray(parsed) ? parsed.filter((item: StoredHistoryItem) =>
         item.player !== "undefined" && item.player !== undefined && item.player !== null
       ) : [];
       setHistory(cleaned);
@@ -101,28 +133,32 @@ export default function LoomiiApp() {
   }, []);
 
   const connectWallet = async () => {
-    if (!(window as any).ethereum) {
+    const ethereum = getEthereum();
+    if (!ethereum) {
       toast.error("Please install MetaMask or another browser wallet.");
       return;
     }
     setIsConnecting(true);
     try {
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const provider = new ethers.BrowserProvider(ethereum);
       const accounts = await provider.send("eth_requestAccounts", []);
       if (!accounts?.length || accounts[0] === 'undefined' || typeof accounts[0] !== 'string') {
         setIsConnecting(false); return;
       }
       const sanitizedAddress = ethers.getAddress(accounts[0]);
       const network = await provider.getNetwork();
-      if (network.chainId !== 4221n) {
+      if (network.chainId !== 61999n) {
         try {
-          await (window as any).ethereum.request({
+          await ethereum.request({
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: NETWORK_CONFIG.chainId }],
           });
-        } catch (switchError: any) {
-          if (switchError.code === 4902) {
-            await (window as any).ethereum.request({
+        } catch (switchError: unknown) {
+          const code = typeof switchError === 'object' && switchError !== null && 'code' in switchError
+            ? (switchError as { code: unknown }).code
+            : undefined;
+          if (code === 4902) {
+            await ethereum.request({
               method: 'wallet_addEthereumChain',
               params: [NETWORK_CONFIG],
             });
@@ -130,8 +166,8 @@ export default function LoomiiApp() {
         }
       }
       setAccount(sanitizedAddress);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to connect wallet");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err) || "Failed to connect wallet");
     } finally {
       setIsConnecting(false);
     }
@@ -244,7 +280,7 @@ export default function LoomiiApp() {
                 >
                   <Wallet className="w-12 h-12 text-primary mx-auto mb-4" />
                   <h3 className="text-2xl font-bold uppercase italic mb-2">Wallet Required</h3>
-                  <p className="text-muted-foreground mb-6 text-sm">Connect your MetaMask to GenLayer Testnet Bradbury to start playing and earning GEN.</p>
+                  <p className="text-muted-foreground mb-6 text-sm">Connect your MetaMask to GenLayer StudioNet to start playing and earning GEN.</p>
                   <button
                     onClick={connectWallet}
                     disabled={isConnecting}
@@ -460,9 +496,9 @@ export default function LoomiiApp() {
                       setTxStatus('confirmed');
                       toast.success(`Funded house with ${amount} GEN`);
                       syncData();
-                    } catch (e: any) {
+                    } catch (e: unknown) {
                       setTxStatus('idle');
-                      if (e.code === 'ACTION_REJECTED' || e.message?.includes('user rejected action')) {
+                      if (isRejectedTransaction(e)) {
                         toast.error("Funding cancelled by user.");
                       } else {
                         toast.error("Funding failed.");

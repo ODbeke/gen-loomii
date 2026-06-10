@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Plus, Minus } from 'lucide-react';
 import type { GameProps } from '@/lib/loomii-types';
 import { playLoomii } from '@/lib/loomii-engine';
+import { isRejectedTransaction } from '@/lib/errors';
 
 export function CoinFlipGame({ account, addHistory, setTxStatus, setCurrentTxHash, setError, refreshStats }: GameProps) {
   const [bet, setBet] = useState(10);
@@ -56,8 +57,8 @@ export function CoinFlipGame({ account, addHistory, setTxStatus, setCurrentTxHas
 
       refreshStats();
       setTimeout(() => setIsFlipping(false), 1000);
-    } catch (e: any) {
-      if (e.code === 'ACTION_REJECTED' || e.message?.includes('user rejected action')) {
+    } catch (e: unknown) {
+      if (isRejectedTransaction(e)) {
         setError("Transaction cancelled by user.");
       } else {
         setError("An unexpected error occurred during the flip.");

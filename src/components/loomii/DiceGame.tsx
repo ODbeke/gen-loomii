@@ -3,6 +3,7 @@ import { Dice5, RefreshCw, ShieldCheck, Plus, Minus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { GameProps } from '@/lib/loomii-types';
 import { playLoomii } from '@/lib/loomii-engine';
+import { isRejectedTransaction } from '@/lib/errors';
 
 export function DiceGame({ account, addHistory, setTxStatus, setCurrentTxHash, setError, refreshStats }: GameProps) {
   const [bet, setBet] = useState(10);
@@ -57,8 +58,8 @@ export function DiceGame({ account, addHistory, setTxStatus, setCurrentTxHash, s
       });
 
       refreshStats();
-    } catch (e: any) {
-      if (e.code === 'ACTION_REJECTED' || e.message?.includes('user rejected action')) {
+    } catch (e: unknown) {
+      if (isRejectedTransaction(e)) {
         setError("Transaction cancelled by user.");
       } else {
         setError("An unexpected error occurred during the dice roll.");

@@ -48,7 +48,7 @@ export function BridgeDropdown({ balance, setBalance }: BridgeDropdownProps) {
               </div>
               <div className="w-full h-px bg-gradient-to-r from-transparent via-border to-transparent my-4" />
               <p className="text-[10px] text-muted-foreground leading-relaxed max-w-[200px]">
-                The Loomii Bridge is currently being upgraded for GenLayer Testnet Bradbury.
+                The Loomii Bridge is currently being upgraded for GenLayer StudioNet.
               </p>
             </div>
           </motion.div>
