@@ -85,6 +85,52 @@ export const extractStudioReceiptResult = (receipt: unknown): LoomiiContractResu
   return null;
 };
 
+const extractReceiptResult = async (receipt: unknown, hash: string): Promise<LoomiiContractResult> => {
+  let result: LoomiiContractResult = { status: 'UNKNOWN', vibe: 'The oracle is silent.' };
+
+  const studioResult = extractStudioReceiptResult(receipt);
+  if (studioResult) {
+    return studioResult;
+  }
+
+  const receiptRecord = receipt as { data?: unknown };
+
+  // On non-Studio receipts the contract's return value can be in receipt.data.
+  if (receiptRecord.data) {
+    try {
+      const parsed = parseLoomiiResult(receiptRecord.data);
+      if (parsed) {
+        return parsed;
+      }
+    } catch (e) {
+      console.warn("Could not parse receipt.data:", e, receiptRecord.data);
+    }
+  }
+
+  // If receipt didn't have our result, try using debugTraceTransaction where available.
+  try {
+    const readClient = getReadClient();
+    const trace = await readClient.debugTraceTransaction({ hash });
+    console.log("🔍 Debug trace return_data:", trace.return_data);
+    if (trace.return_data) {
+      try {
+        let decoded = trace.return_data;
+        if (decoded.startsWith('0x')) {
+          decoded = ethers.toUtf8String(decoded);
+        }
+        const parsed = parseLoomiiResult(decoded);
+        if (parsed) result = parsed;
+      } catch (parseErr) {
+        console.warn("Could not parse trace return_data:", parseErr);
+      }
+    }
+  } catch (traceErr) {
+    console.warn("Debug trace failed:", traceErr);
+  }
+
+  return result;
+};
+
 const getEthereumProvider = (): EthereumProvider | null => {
   const candidate = (window as Window & { ethereum?: EthereumProvider }).ethereum;
   return candidate ?? null;
@@ -169,60 +215,29 @@ export const playLoomii = async (
     console.log("✅ Wager sent via GenLayer play():", hash);
     if (onHash) onHash(hash);
     
-    // Wait for transaction to be ACCEPTED (consensus reached)
-    const receipt = await client.waitForTransactionReceipt({ 
-      hash,
-      status: TransactionStatus.ACCEPTED,
-    });
+    let receipt: unknown;
+    try {
+      // Wait for transaction to be ACCEPTED (consensus reached). StudioNet can take a while
+      // to move from activated/proposed states, so use a wider polling window.
+      receipt = await client.waitForTransactionReceipt({
+        hash,
+        status: TransactionStatus.ACCEPTED,
+        interval: 5000,
+        retries: 180,
+      });
+    } catch (waitError) {
+      console.warn("Receipt wait timed out; fetching latest transaction state:", waitError);
+      receipt = await client.getTransaction({ hash });
+    }
 
     console.log("📦 Receipt received:", JSON.stringify(receipt, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2));
-
-    let result: LoomiiContractResult = { status: 'UNKNOWN', vibe: 'The oracle is silent.' };
     
     // Check execution result
-    if (receipt.txExecutionResultName === ExecutionResult.FINISHED_WITH_ERROR) {
+    if ((receipt as { txExecutionResultName?: unknown }).txExecutionResultName === ExecutionResult.FINISHED_WITH_ERROR) {
       return { success: false, hash, error: "Contract execution failed on-chain." };
     }
 
-    const studioResult = extractStudioReceiptResult(receipt);
-    if (studioResult) {
-      result = studioResult;
-    }
-
-    // On non-Studio receipts the contract's return value can be in receipt.data.
-    if (result.status === 'UNKNOWN' && receipt.data) {
-      try {
-        const parsed = parseLoomiiResult(receipt.data);
-        if (parsed) {
-          result = parsed;
-        }
-      } catch (e) {
-        console.warn("Could not parse receipt.data:", e, receipt.data);
-      }
-    }
-
-    // If receipt.data didn't have our result, try using debugTraceTransaction
-    if (result.status === 'UNKNOWN') {
-      try {
-        const readClient = getReadClient();
-        const trace = await readClient.debugTraceTransaction({ hash });
-        console.log("🔍 Debug trace return_data:", trace.return_data);
-        if (trace.return_data) {
-          try {
-            // return_data might be hex-encoded
-            let decoded = trace.return_data;
-            if (decoded.startsWith('0x')) {
-              decoded = ethers.toUtf8String(decoded);
-            }
-            result = JSON.parse(decoded);
-          } catch (parseErr) {
-            console.warn("Could not parse trace return_data:", parseErr);
-          }
-        }
-      } catch (traceErr) {
-        console.warn("Debug trace failed:", traceErr);
-      }
-    }
+    const result = await extractReceiptResult(receipt, hash);
 
     if (result.status === 'ERROR') {
       return { success: false, hash, error: result.message || result.vibe || "Contract returned an error." };
