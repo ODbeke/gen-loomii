@@ -67,7 +67,6 @@ async function getWriteClient() {
     account,
     provider: ethereum,
   });
-  await client.connect("studionet");
   return client;
 }
 
