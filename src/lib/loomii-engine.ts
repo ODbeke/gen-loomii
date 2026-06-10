@@ -2,6 +2,7 @@ import { ethers } from 'ethers';
 import { createClient } from 'genlayer-js';
 import { studionet } from 'genlayer-js/chains';
 import { TransactionStatus, ExecutionResult } from 'genlayer-js/types';
+import { getErrorMessage } from './errors';
 
 export const LOOMII_CONTRACT_ADDRESS = "0xf5Af16B2f1628b102154462Ff38c6da272DEc20c";
 export const INITIAL_BALANCE = 1000000;
@@ -171,9 +172,13 @@ export const playLoomii = async (
       }
     }
 
+    if (result.status === 'ERROR') {
+      return { success: false, hash, error: result.message || result.vibe || "Contract returned an error." };
+    }
+
     return { success: true, hash, result };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessage(error);
     console.error("❌ Loomii Engine Error:", message);
     return { success: false, error: message };
   }
