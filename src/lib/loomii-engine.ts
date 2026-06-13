@@ -13,7 +13,7 @@ export const NETWORK_CONFIG = {
   chainName: 'GenLayer Studio Network',
   nativeCurrency: { name: 'GEN Token', symbol: 'GEN', decimals: 18 },
   rpcUrls: ['https://studio.genlayer.com/api'],
-  blockExplorerUrls: ['https://genlayer-explorer.vercel.app/'],
+  blockExplorerUrls: ['https://explorer-studio.genlayer.com/'],
 };
 
 type EthereumProvider = {
