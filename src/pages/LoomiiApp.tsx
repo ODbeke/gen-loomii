@@ -118,13 +118,24 @@ export default function LoomiiApp() {
     if (savedHistory) {
       const parsed = JSON.parse(savedHistory);
       const cleaned = Array.isArray(parsed) ? parsed.filter((item: StoredHistoryItem) =>
-        item.player !== "undefined" && item.player !== undefined && item.player !== null
+        item.player !== "undefined" && item.player !== null
       ) : [];
       setHistory(cleaned);
     }
     // Cleanup any legacy pending-wager storage from prior contract version
     localStorage.removeItem('loomii_pending_wagers');
   }, []);
+
+  useEffect(() => {
+    if (account && history.length > 0) {
+      const needsMigration = history.some((item: StoredHistoryItem) => !item.player);
+      if (needsMigration) {
+        setHistory(prev =>
+          prev.map((item: StoredHistoryItem) => (!item.player ? { ...item, player: account } : item))
+        );
+      }
+    }
+  }, [account, history]);
 
   useEffect(() => { localStorage.setItem('loomii_history', JSON.stringify(history)); }, [history]);
 
