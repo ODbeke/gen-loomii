@@ -49,6 +49,10 @@ export default function LoomiiApp() {
   const [activeGame, setActiveGame] = useState<GameType | null>(null);
   const [history, setHistory] = useState<GameResult[]>([]);
   
+  const filteredHistory = React.useMemo(() => {
+    if (!account) return [];
+    return history.filter((item: StoredHistoryItem) => item.player === account);
+  }, [history, account]);
   
   const [txStatus, setTxStatus] = useState<TxStatus>('idle');
   const [currentTxHash, setCurrentTxHash] = useState<string | null>(null);
@@ -174,12 +178,20 @@ export default function LoomiiApp() {
   };
 
   const addHistory = (result: GameResult) => {
-    setHistory(prev => [result, ...prev].slice(0, 50));
+    const itemWithPlayer: StoredHistoryItem = {
+      ...result,
+      player: account || undefined
+    };
+    setHistory(prev => [itemWithPlayer, ...prev].slice(0, 50));
   };
 
   const clearHistory = () => {
-    setHistory([]);
-    localStorage.removeItem('loomii_history');
+    if (account) {
+      setHistory(prev => prev.filter((item: StoredHistoryItem) => item.player !== account));
+    } else {
+      setHistory([]);
+      localStorage.removeItem('loomii_history');
+    }
   };
 
   const gameProps = {
@@ -408,10 +420,12 @@ export default function LoomiiApp() {
           </div>
 
           <div className="space-y-2">
-            {history.length === 0 ? (
+            {!account ? (
+              <div className="py-12 text-center text-muted-foreground/30 italic">Please connect your wallet to view your transaction history.</div>
+            ) : filteredHistory.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground/30 italic">No transactions found in this block.</div>
             ) : (
-              history.map((item, i) => (
+              filteredHistory.map((item, i) => (
                 <motion.div
                   initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                   key={i}
