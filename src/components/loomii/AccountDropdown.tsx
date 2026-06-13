@@ -30,13 +30,13 @@ export function AccountDropdown({ account, balance, onDisconnect }: AccountDropd
             <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-500 rounded-full border border-secondary" />
           </div>
           <span className="font-mono text-sm font-medium flex items-center gap-1">
-            <span className="text-lg leading-none">♾️</span>
+            <span>{balance.toLocaleString()}</span>
             <span className="text-primary">GEN</span>
           </span>
           <ChevronDown className={`w-3 h-3 text-muted-foreground group-hover:text-foreground transition-all ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
-
+ 
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -57,6 +57,10 @@ export function AccountDropdown({ account, balance, onDisconnect }: AccountDropd
                 <div>
                   <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Wallet Address</div>
                   <div className="text-xs font-mono truncate bg-secondary p-2 rounded border border-border">{account}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Balance</div>
+                  <div className="text-xs font-mono bg-secondary p-2 rounded border border-border">{balance.toLocaleString()} GEN</div>
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Network</div>
